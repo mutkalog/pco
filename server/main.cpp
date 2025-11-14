@@ -1,5 +1,6 @@
 #include <httplib.h>
 #include <nlohmann/json.hpp>
+#include <fstream>
 
 
 int main()
@@ -17,38 +18,21 @@ int main()
         std::cout << req.get_param_value("type") << std::endl;
 
         json jsonbody;
-        jsonbody["release"] = {{"version", "1.2.0"},
-                               {"type", "Raspberry Pi 4"},
-                               {"timestamp", "2025-11-12T10:23:00Z"},
-                               {"platform", "linux"},
-                               {"arch", "x86_64"}};
 
-        jsonbody["files"] = json::array({
-            {
-             {"path", "/opt/myapp/test"},
-             {"hash", {
-                       {"algo", "sha256"},
-                       {"value", "abcd12318712673abcd..."}
-                      }
-             }
-            },
-            {
-             {"path", "/opt/myapp/config.yml"},
-             {"hash", {
-                       {"algo", "sha256"},
-                       {"value", "beef5678..."}
-                      }
-             }
-            }
-        });
+        std::ifstream fr("/home/alexander/Projects/posix-compatable-ota/posix-compatable-ota/app1/manifest.json");
+        if (fr.is_open() == false)
+            throw std::runtime_error("cannot open manifest.json");
 
-        jsonbody["dependencies"] = {
-            "/lib/x86_64-linux-gnu/libgcc_s.so.1",
-            "/lib64/ld-linux-x86-64.so.2",
-            "/lib/x86_64-linux-gnu/libm.so.6",
-            "/lib/x86_64-linux-gnu/libc.so.6",
-            "/lib/x86_64-linux-gnu/libstdc++.so.6"
-        };
+        std::string raw((std::istreambuf_iterator<char>(fr)), std::istreambuf_iterator<char>());
+
+        std::ifstream fs("/home/alexander/Projects/posix-compatable-ota/posix-compatable-ota/app1/signature.json");
+        if (fs.is_open() == false)
+            throw std::runtime_error("cannot open manifest.json");
+
+        std::string signatureInfo((std::istreambuf_iterator<char>(fs)), std::istreambuf_iterator<char>());
+
+        jsonbody["manifest"] = raw;
+        jsonbody["signature"] = signatureInfo;
 
         res.status = 200;
         std::string body = jsonbody.dump();

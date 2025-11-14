@@ -1,0 +1,11 @@
+name: John Doe
+age: 30
+isStudent: false
+height: 1.75 # floating point number
+
+# Lists (sequences)
+hobbies:
+  - reading
+  - hiking
+  - coding
+
