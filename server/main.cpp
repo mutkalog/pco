@@ -1,6 +1,7 @@
 #include <httplib.h>
 #include <nlohmann/json.hpp>
 #include <fstream>
+#include <unistd.h>
 
 
 int main()
@@ -13,21 +14,23 @@ int main()
         std::cout << req.method << std::endl;
         std::cout << req.path << std::endl;
         std::cout << req.body << std::endl;
-        std::cout << req.get_param_value("id") << std::endl;
-        std::cout << req.get_param_value("place") << std::endl;
-        std::cout << req.get_param_value("type") << std::endl;
+        // std::cout << req.get_param_value("id") << std::endl;
+        // std::cout << req.get_param_value("place") << std::endl;
+        // std::cout << req.get_param_value("type") << std::endl;
 
         json jsonbody;
 
-        std::ifstream fr("/home/alexander/Projects/posix-compatable-ota/posix-compatable-ota/app1/manifest.json");
-        if (fr.is_open() == false)
+        std::ifstream fr(std::string(PROJECT_ROOT_DIR) + "/app1/manifest.json", std::ios_base::in | std::ios_base::binary);
+        if (!fr) {
             throw std::runtime_error("cannot open manifest.json");
+        }
 
         std::string raw((std::istreambuf_iterator<char>(fr)), std::istreambuf_iterator<char>());
 
-        std::ifstream fs("/home/alexander/Projects/posix-compatable-ota/posix-compatable-ota/app1/signature.json");
-        if (fs.is_open() == false)
-            throw std::runtime_error("cannot open manifest.json");
+        std::ifstream fs(std::string(PROJECT_ROOT_DIR) + "/app1/signature.json");
+        if (!fs) {
+            throw std::runtime_error("cannot open signature.json");
+        }
 
         std::string signatureInfo((std::istreambuf_iterator<char>(fs)), std::istreambuf_iterator<char>());
 
@@ -38,6 +41,26 @@ int main()
         std::string body = jsonbody.dump();
         res.set_content(body, "application/json");
     });
+
+
+    server.Get("/download", [](const Request& req, Response& res) {
+        std::cout << req.method << std::endl;
+        std::cout << req.path << std::endl;
+        // std::cout << req.get_param_value("id") << std::endl;
+        // std::cout << req.get_param_value("place") << std::endl;
+        // std::cout << req.get_param_value("type") << std::endl;
+
+        std::ifstream fArchive(std::string(PROJECT_ROOT_DIR) + "/app1/app.tar.gz");
+        if (!fArchive) {
+            throw std::runtime_error("cannot open manifest.json");
+        }
+
+        std::vector<uint8_t> raw((std::istreambuf_iterator<char>(fArchive)), std::istreambuf_iterator<char>());
+
+        res.status = 200;
+        res.set_content(reinterpret_cast<const char*>(raw.data()), raw.size(), "application/gzip");
+    });
+
 
     server.listen("0.0.0.0", 8080);
 }

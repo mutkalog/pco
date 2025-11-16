@@ -1,45 +1,29 @@
 #ifndef STATEMACHINE_H
 #define STATEMACHINE_H
 
-#include <cstddef>
-
 #include "data.h"
-
+#include "stateexecutors/stateexecutor.h"
 
 class StateMachine
 {
-public:
-    enum State : size_t
-    {
-        IDLE,
-        CHECKING,
-        DOWNLOADING,
-        VERIFYING,
-        TESTING,
-        COMMITING,
-        TOTAL = 6
-    };
-
 public:
     static StateMachine& instance() {
         static StateMachine sm;
         return sm;
     }
 
-    enum State state()          { return m_state; }
-    void setState(enum State s) { m_state = s; }
+    enum StateExecutor::StateId state() { return currentSE_->id(); }
 
-    void proceed() {
-        m_state = static_cast<enum State>(m_state + 1);
-        m_state = (m_state == TOTAL) ? IDLE : m_state;
-    }
+    void transitTo(StateExecutor *se) { currentSE_ = se; }
 
-    void reset() { m_state = IDLE; }
+    void run() { currentSE_->execute(*this); }
+
+    UpdateContext context;
 
 private:
     StateMachine();
-    enum State m_state;
 
+    StateExecutor *currentSE_;
 };
 
 #endif // STATEMACHINE_H

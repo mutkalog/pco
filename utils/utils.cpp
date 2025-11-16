@@ -3,6 +3,9 @@
 #include <openssl/pem.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
+#include <stdexcept>
+#include <fstream>
+#include <array>
 
 
 std::vector<uint8_t> SSLUtils::decodeBase64(const std::string& input)
@@ -30,8 +33,10 @@ bool SSLUtils::verifySignature(const std::string &manifest, const std::vector<ui
 {
     bool result = false;
     FILE* fp = fopen(pubkeyFilePath.c_str(), "r");
-    if (fp == nullptr)
-        return false;
+    if (!fp)
+    {
+        throw std::runtime_error("Cannot find public key");
+    }
 
     EVP_PKEY* pubkey = PEM_read_PUBKEY(fp, nullptr, nullptr, nullptr);
 
@@ -52,4 +57,35 @@ bool SSLUtils::verifySignature(const std::string &manifest, const std::vector<ui
     EVP_PKEY_free(pubkey);
 
     return result;
+}
+
+std::vector<uint8_t> SSLUtils::sha256FromFile(const std::string &path)
+{
+    std::ifstream file(path, std::ios_base::in | std::ios_base::binary);
+    if (!file)
+        throw std::runtime_error("Cannot find file");
+
+    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+    EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr);
+
+    const size_t BUF_SIZE = 8192;
+    std::array<uint8_t, BUF_SIZE> buffer;
+
+    while (file)
+    {
+        file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+        std::streamsize bytesRead = file.gcount();
+        if (bytesRead > 0)
+            EVP_DigestUpdate(ctx, buffer.data(), bytesRead);
+    }
+
+    std::vector<uint8_t> hash(EVP_MAX_MD_SIZE);
+    uint32_t hashLen = 0;
+
+    EVP_DigestFinal_ex(ctx, hash.data(), &hashLen);
+    EVP_MD_CTX_free(ctx);
+
+    hash.resize(hashLen);
+
+    return hash;
 }
