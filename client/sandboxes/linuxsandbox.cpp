@@ -22,10 +22,9 @@ void LinuxSandbox::prepare(const UpdateContext &context)
     createRootfs(context);
     copyDependencies(context);
 
-}
-
-void LinuxSandbox::launch(const UpdateContext &context)
-{
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, socketsFds_) != 0)
+        throw std::system_error(std::error_code(errno, std::generic_category()),
+                                "soketpair() failed");
 
     pid_t pid = fork();
     if (pid == -1)
@@ -46,6 +45,7 @@ void LinuxSandbox::launch(const UpdateContext &context)
 
         rc = mount(context.testingDir.c_str(), context.testingDir.c_str(),
                    nullptr, MS_BIND | MS_REC, nullptr);
+
         if (rc != 0)
             throw std::system_error(std::error_code(errno, std::generic_category()),
                                     "mount() failed");
@@ -57,17 +57,32 @@ void LinuxSandbox::launch(const UpdateContext &context)
             throw std::system_error(std::error_code(errno, std::generic_category()),
                                     "pivot_root() failed");
 
-        execl("/app", "app", nullptr);
 
-        // volatile int wait = 1;
-        // while(wait) sleep(1);
+        std::array<char, 128> buf{};
+        if (read(socketsFds_[CHILD], buf.data(), buf.size()) == -1)
+        {
+            int cmd = std::stoi(std::string(buf.data()), nullptr, 10);
 
+            switch (cmd)
+            {
+            case RUN:
+                ////@todo сделать возможность запускать несколько приложений
+                execl("/app", "app", nullptr);
+                break;
+            case ABORT:
+                exit(0);
+                break;
+            }
+        }
     }
     else
     {
-        waitpid(pid, nullptr, 0);
-        kill(pid, SIGKILL);
+        containerPid_ = pid;
     }
+}
+
+void LinuxSandbox::launch(const UpdateContext &context)
+{
 }
 
 void LinuxSandbox::copyDependencies(const UpdateContext &context)
