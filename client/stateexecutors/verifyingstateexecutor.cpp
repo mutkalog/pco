@@ -22,18 +22,19 @@ void VerifyingStateExecutor::execute(StateMachine &sm)
         return true;
     };
 
-
     for (const auto& file : ctx.manifest.files)
     {
-        auto i = file.installPath.rfind('/');
-        if (i == std::string::npos)
-            throw std::runtime_error("Invalid install path");
+        // auto i = file.installPath.rfind('/');
+        // if (i == std::string::npos)
+        //     throw std::runtime_error("Invalid install path");
 
-        std::string programName = file.installPath.substr(i + 1);
-        std::string fileName    = ctx.testingDir + "/" + programName;
+        // std::string programName = file.installPath.substr(i + 1);
+        // std::string fileName    = ctx.testingDir + "/" + programName;
 
-        auto fileHash     = SSLUtils::sha256FromFile(fileName);
-        auto manifestHash = file.hash.value;
+        std::string fileName = ctx.testingDir + "/" + file.installPath;
+
+        auto fileHash        = SSLUtils::sha256FromFile(fileName);
+        auto manifestHash    = file.hash.value;
 
         if (isHashsEquals(fileHash, manifestHash) == false)
         {

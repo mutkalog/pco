@@ -35,44 +35,47 @@ void LinuxSandbox::prepare(const UpdateContext &context)
     {
         int rc = unshare(CLONE_NEWNS | CLONE_NEWPID);
         if (rc != 0)
-            throw std::system_error(std::error_code(errno, std::generic_category()),
-                                    "unshare() failed");
+            socketReport(CHILD, FAIL, "unshare() failed");
 
         rc = mount(nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr);
         if (rc != 0)
-            throw std::system_error(std::error_code(errno, std::generic_category()),
-                                    "mount() failed");
+            socketReport(CHILD, FAIL, "mount() failed");
 
         rc = mount(context.testingDir.c_str(), context.testingDir.c_str(),
                    nullptr, MS_BIND | MS_REC, nullptr);
-
         if (rc != 0)
-            throw std::system_error(std::error_code(errno, std::generic_category()),
-                                    "mount() failed");
+            socketReport(CHILD, FAIL, "mount() failed");
 
         rc = syscall(SYS_pivot_root, context.testingDir.c_str(),
                      std::string(context.testingDir + "/" + "oldroot").c_str());
-
         if (rc != 0)
-            throw std::system_error(std::error_code(errno, std::generic_category()),
-                                    "pivot_root() failed");
+            socketReport(CHILD, FAIL, "pivot_root() failed");
 
+        socketReport(CHILD, OK, "Environment has been built");
 
-        std::array<char, 128> buf{};
-        if (read(socketsFds_[CHILD], buf.data(), buf.size()) == -1)
+        int cmd = socketRead(socketsFds_[CHILD]);
+
+        switch (cmd)
         {
-            int cmd = std::stoi(std::string(buf.data()), nullptr, 10);
-
-            switch (cmd)
+        case RUN:
+            for (const auto& app : context.manifest.files)
             {
-            case RUN:
-                ////@todo сделать возможность запускать несколько приложений
-                execl("/app", "app", nullptr);
-                break;
-            case ABORT:
-                exit(0);
-                break;
+                if (app.isExecutable == false)
+                    continue;
+
+                auto i = app.installPath.rfind('/');
+                if (i == std::string::npos)
+                    socketReport(CHILD, FAIL, "wrong filename failed");
+
+                std::string programName = app.installPath.substr(i + 1);
+
+                execl(app.installPath.c_str(), programName.c_str(), nullptr);
             }
+            break;
+        case ABORT:
+            std::cout << "Abort command received. Aborting" << std::endl;
+            exit(0);
+            break;
         }
     }
     else
@@ -83,11 +86,19 @@ void LinuxSandbox::prepare(const UpdateContext &context)
 
 void LinuxSandbox::launch(const UpdateContext &context)
 {
+    int status = socketRead(PARENT);
+    switch (status)
+    {
+    case OK:
+        socketReport(PARENT, RUN, "Launch command sent");
+        break;
+    default:
+        break;
+    }
 }
 
 void LinuxSandbox::copyDependencies(const UpdateContext &context)
 {
-
     ArtifactManifest manifest = context.manifest;
 
     for (const auto& lib : manifest.requiredSharedLibraries)

@@ -22,6 +22,7 @@ struct ArtifactManifest {
             std::string algo;
             std::vector<uint8_t> value;
         } hash;
+        bool isExecutable;
     };
 
     struct {
