@@ -4,6 +4,10 @@
 #include "idlestateexecutor.h"
 #include "verifyingstateexecutor.h"
 
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
 void DowloadStateExecutor::execute(StateMachine &sm)
 {
     auto& ctx = sm.context;
@@ -19,8 +23,26 @@ void DowloadStateExecutor::execute(StateMachine &sm)
         throw std::runtime_error("Cannot extract files");
     }
 
-    // std::cout << "DONE" << std::endl;
-    // exit(0);
+    for (const auto& file : ctx.manifest.files)
+    {
+        if (file.installPath != "/")
+        {
+            fs::path rootEnvironmentPath = ctx.testingDir + file.installPath;
+            try
+            {
+                fs::create_directories(rootEnvironmentPath.parent_path());
+                fs::path filename = rootEnvironmentPath.filename();
+                if (filename.empty()) throw std::runtime_error("Wrong program name");
+                fs::rename(ctx.testingDir + "/" + filename.string(), rootEnvironmentPath);
+            }
+            catch (const std::exception& ex)
+            {
+                std::cout << ex.what() << std::endl;
+                sm.transitTo(&IdleStateExecutor::instance());
+                exit(1);
+            }
+        }
+    }
 
     sm.transitTo(&VerifyingStateExecutor::instance());
 }

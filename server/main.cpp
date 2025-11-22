@@ -9,8 +9,9 @@ int main()
     using namespace httplib;
     Server server;
     using json = nlohmann::ordered_json;
+    std::string testdir = std::string(PROJECT_ROOT_DIR) + "/app2";
 
-    server.Get("/manifest", [](const Request& req, Response& res) {
+    server.Get("/manifest", [&](const Request& req, Response& res) {
         std::cout << req.method << std::endl;
         std::cout << req.path << std::endl;
         std::cout << req.body << std::endl;
@@ -20,14 +21,14 @@ int main()
 
         json jsonbody;
 
-        std::ifstream fr(std::string(PROJECT_ROOT_DIR) + "/app1/manifest.json", std::ios_base::in | std::ios_base::binary);
+        std::ifstream fr(testdir + "/manifest.json", std::ios_base::in | std::ios_base::binary);
         if (!fr) {
             throw std::runtime_error("cannot open manifest.json");
         }
 
         std::string raw((std::istreambuf_iterator<char>(fr)), std::istreambuf_iterator<char>());
 
-        std::ifstream fs(std::string(PROJECT_ROOT_DIR) + "/app1/signature.json");
+        std::ifstream fs(testdir + "/signature.json");
         if (!fs) {
             throw std::runtime_error("cannot open signature.json");
         }
@@ -43,14 +44,14 @@ int main()
     });
 
 
-    server.Get("/download", [](const Request& req, Response& res) {
+    server.Get("/download", [&](const Request& req, Response& res) {
         std::cout << req.method << std::endl;
         std::cout << req.path << std::endl;
         // std::cout << req.get_param_value("id") << std::endl;
         // std::cout << req.get_param_value("place") << std::endl;
         // std::cout << req.get_param_value("type") << std::endl;
 
-        std::ifstream fArchive(std::string(PROJECT_ROOT_DIR) + "/app1/app.tar.gz");
+        std::ifstream fArchive(testdir + "/app.tar.gz");
         if (!fArchive) {
             throw std::runtime_error("cannot open manifest.json");
         }

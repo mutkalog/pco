@@ -1,12 +1,15 @@
 #include "environmentbuildingstateexecutor.h"
-#include "../sandboxes/linuxsandbox.h"
+#include "../stateexecutors/testingstateexecutor.h"
+
 
 void EnvironmentBuildingStateExecutor::execute(StateMachine &sm)
 {
-    LinuxSandbox sb;
-    sb.run(sm.context);
-    // sb.createRootfs(sm.context);
-    // sb.copyDependencies(sm.context);
+    auto& sb = sm.context.sb;
 
-    exit(0);
+    sb->prepare(sm.context);
+    sb->launch(sm.context);
+
+    // sleep(20);
+
+    sm.instance().transitTo(&TestingStateExecutor::instance());
 }

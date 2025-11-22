@@ -1,17 +1,25 @@
 #ifndef SANDBOX_H
 #define SANDBOX_H
 
-#include "../statemachine.h"
+
+class UpdateContext;
 
 class Sandbox
 {
 public:
     virtual ~Sandbox() = default;
 
-protected:
-    virtual void prepare(const UpdateContext& context) = 0;
-    virtual void cleanup(const UpdateContext& context) = 0;
-    virtual void launch(const UpdateContext& context) = 0;
+    virtual void prepare(UpdateContext& context) = 0;
+    virtual void cleanup(UpdateContext& context) = 0;
+    virtual void launch(UpdateContext& context) = 0;
+};
+
+class SandboxInspector
+{
+public:
+    virtual ~SandboxInspector() = default;
+
+    virtual void inspect(UpdateContext& context) = 0;
 };
 
 #endif // SANDBOX_H

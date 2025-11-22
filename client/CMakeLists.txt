@@ -21,7 +21,9 @@ add_executable(pco-client main.cpp
     stateexecutors/verifyingstateexecutor.h stateexecutors/verifyingstateexecutor.cpp
     stateexecutors/environmentbuildingstateexecutor.h stateexecutors/environmentbuildingstateexecutor.cpp
     sandboxes/sandbox.cpp sandboxes/sandbox.h
-    sandboxes/linuxsandbox.h sandboxes/linuxsandbox.cpp)
+    sandboxes/linuxsandbox.h sandboxes/linuxsandbox.cpp
+    sandboxes/linuxsandboxinspecor.h sandboxes/linuxsandboxinspecor.cpp
+    stateexecutors/testingstateexecutor.h stateexecutors/testingstateexecutor.cpp)
 
 
 target_link_libraries(pco-client PRIVATE

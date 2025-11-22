@@ -3,6 +3,10 @@
 #include "idlestateexecutor.h"
 #include "../../utils/utils.h"
 
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
 void VerifyingStateExecutor::execute(StateMachine &sm)
 {
     auto& ctx = sm.context;
@@ -22,6 +26,7 @@ void VerifyingStateExecutor::execute(StateMachine &sm)
         return true;
     };
 
+
     for (const auto& file : ctx.manifest.files)
     {
         // auto i = file.installPath.rfind('/');
@@ -31,7 +36,7 @@ void VerifyingStateExecutor::execute(StateMachine &sm)
         // std::string programName = file.installPath.substr(i + 1);
         // std::string fileName    = ctx.testingDir + "/" + programName;
 
-        std::string fileName = ctx.testingDir + "/" + file.installPath;
+        std::string fileName = ctx.testingDir + file.installPath;
 
         auto fileHash        = SSLUtils::sha256FromFile(fileName);
         auto manifestHash    = file.hash.value;
@@ -39,11 +44,12 @@ void VerifyingStateExecutor::execute(StateMachine &sm)
         if (isHashsEquals(fileHash, manifestHash) == false)
         {
             sm.instance().transitTo(&IdleStateExecutor::instance());
-            std::cout << "FAIL" << std::endl;
+            std::cout << "Hashes are not equal" << std::endl;
 
-            break;
+            return;
         }
     }
+    ctx.hashsOk = true;
 
     sm.instance().transitTo(&EnvironmentBuildingStateExecutor::instance());
 

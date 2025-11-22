@@ -45,9 +45,10 @@ void CheckingStateExecutor::loadManifestFromJson(ArtifactManifest& manifest, con
     for (const auto& file : data["files"])
     {
         ArtifactManifest::File entry;
-        entry.installPath = file["path"]         .get<std::string>();
-        entry.hash.algo   = file["hash"]["algo"] .get<std::string>();
-        entry.hash.value  = parseHashFromString(file["hash"]["value"].get<std::string>());
+        entry.isExecutable = file["executable"]   .get<bool>();
+        entry.installPath  = file["path"]         .get<std::string>();
+        entry.hash.algo    = file["hash"]["algo"] .get<std::string>();
+        entry.hash.value   = parseHashFromString(file["hash"]["value"].get<std::string>());
 
         manifest.files.push_back(std::move(entry));
     }
