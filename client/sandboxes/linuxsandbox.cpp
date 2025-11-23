@@ -47,13 +47,13 @@ void LinuxSandbox::prepare(UpdateContext &context)
         if (rc != 0)
             socketReport(CHILD, FAIL, "mount() failed");
 
-        rc = mount(context.testingDir.c_str(), context.testingDir.c_str(),
+        rc = mount(path_.c_str(), path_.c_str(),
                    nullptr, MS_BIND | MS_REC, nullptr);
         if (rc != 0)
             socketReport(CHILD, FAIL, "mount() failed");
 
-        rc = syscall(SYS_pivot_root, context.testingDir.c_str(),
-                     std::string(context.testingDir + "/" + "oldroot").c_str());
+        rc = syscall(SYS_pivot_root, path_.c_str(),
+                     fs::path(path_ / "oldroot").c_str());
         if (rc != 0)
             socketReport(CHILD, FAIL, "pivot_root() failed");
 
@@ -83,11 +83,9 @@ void LinuxSandbox::prepare(UpdateContext &context)
 
         int cmd = socketRead(CHILD);
 
-        // while (true) sleep(1);
         switch (cmd)
         {
         case RUN:
-            // for (const auto& app : context.manifest.files)
             for (size_t i = 0; i != context.manifest.files.size(); ++i)
             {
                 auto& files = context.manifest.files;
@@ -101,14 +99,13 @@ void LinuxSandbox::prepare(UpdateContext &context)
                 if (programName.empty())
                     socketReport(CHILD, FAIL, "wrong filename failed");
 
-                // execl(app.installPath.c_str(), programName.c_str(), nullptr);
                 char* argv[2] = {const_cast<char*>(programName.c_str()), nullptr};
 
+                ////@todo параметры, передаваемые программе
                 pid_t childPid = 0;
                 if (posix_spawn(&childPid, path.c_str(),
                             nullptr, nullptr, argv, nullptr) != 0)
                 {
-                    std::cout << "FAIL in spawn" << std::endl;
                     socketReport(CHILD, FAIL,
                                  std::string("Cannot launch ") + path.string());
                 }
@@ -117,7 +114,12 @@ void LinuxSandbox::prepare(UpdateContext &context)
                              std::string("Passed child pid ") +
                                  std::to_string(childPid) + " from container");
 
-                std::cout << "PID IS " <<  context.containeredProcesees[i] << std::endl;
+                int cmd = socketRead(CHILD);
+                if (cmd != RUN_NEXT)
+                {
+                    std::cout << "Received not RUN_NEXT command, aborting launching..." << std::endl;
+                    break;
+                }
             }
             break;
         case ABORT:
@@ -128,8 +130,7 @@ void LinuxSandbox::prepare(UpdateContext &context)
     }
     else
     {
-        containerPid_ = pid;
-        std::cout << pid << std::endl;
+        pid_ = pid;
     }
 }
 
@@ -153,16 +154,19 @@ void LinuxSandbox::launch(UpdateContext &context)
         if (files[i].isExecutable == true)
         {
             context.containeredProcesees[i] = socketRead(PARENT);
+            socketReport(PARENT, RUN_NEXT, "Launch next process command sent");
         }
     }
 }
 
 void LinuxSandbox::cleanup(UpdateContext &context)
 {
-    sleep(2);
-    try {
-        fs::remove_all(context.testingDir);
-    } catch (const fs::filesystem_error &ex) {
+    try
+    {
+        fs::remove_all(path_);
+    }
+    catch (const fs::filesystem_error &ex)
+    {
         std::cout << ex.what() << std::endl;
         // debug-mode
         throw;
@@ -175,17 +179,14 @@ void LinuxSandbox::copyDependencies(const UpdateContext &context)
 
     for (const auto& lib : manifest.requiredSharedLibraries)
     {
-        std::string targetFile = context.testingDir + lib.substr(0, lib.rfind("/"));
+        fs::path targetFile = path_ / fs::path(lib).parent_path().relative_path();
         fs::create_directories(targetFile);
         fs::copy(lib, targetFile);
     }
 
     try
     {
-        fs::copy("/bin/busybox", context.testingDir + "/" + "bin");
-        fs::copy("/lib/x86_64-linux-gnu/libresolv.so.2", context.testingDir + "/lib/x86_64-linux-gnu");
-
-        std::cout << "busybox copied to container" << std::endl;
+        fs::copy("/bin/busybox", path_ / "bin");
     }
     catch (const std::exception& ex)
     {
@@ -195,14 +196,14 @@ void LinuxSandbox::copyDependencies(const UpdateContext &context)
 
 void LinuxSandbox::createRootfs(const UpdateContext &context)
 {
-    std::vector<std::string> rootfs{"bin", "sys", "lib", "lib64", "dev", "proc", "tmp", "oldroot"};
+    std::vector<fs::path> rootfs{"bin", "sys", "lib", "lib64", "dev", "proc", "tmp", "oldroot"};
 
     for (const auto& dir : rootfs)
     {
-        std::string directory = context.testingDir + "/" + dir;
+        fs::path directory = path_ / dir;
 
         if (fs::create_directory(directory) == false)
-            throw std::runtime_error("Cannot create rootfs directory \"" + directory + "\"");
+            throw std::runtime_error("Cannot create rootfs directory \"" + directory.string() + "\"");
     }
 }
 

@@ -45,7 +45,7 @@ struct UpdateContext
 {
     httplib::Client client;
     ArtifactManifest manifest;
-    std::string testingDir;
+    fs::path testingDir;
     bool signatureOk;
     bool hashsOk;
     std::vector<pid_t> containeredProcesees;
@@ -59,11 +59,11 @@ struct UpdateContext
 inline UpdateContext::UpdateContext(std::string httpClientSettings)
     : client{httpClientSettings}
     , manifest{}
-    , testingDir{std::string("/tmp/quarantine")}
+    , testingDir{"/tmp/quarantine"}
     , signatureOk{}
     , hashsOk{}
 #if defined(__linux__)
-    , sb{std::make_unique<LinuxSandbox>()}
+    , sb{std::make_unique<LinuxSandbox>("/tmp/quarantine/container")}
     , sbi{std::make_unique<LinuxSandboxInspector>()}
 #endif
     , finalDecision{true}

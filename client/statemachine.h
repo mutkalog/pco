@@ -14,7 +14,11 @@ public:
 
     enum StateExecutor::StateId state() { return currentSE_->id(); }
 
-    void transitTo(StateExecutor *se) { currentSE_ = se; }
+    void transitTo(StateExecutor *se) {
+        std::cout << "Transition to " << se->id() << std::endl;
+        std::cout.flush();
+        currentSE_ = se;
+    }
 
     void run() { currentSE_->execute(*this); }
 

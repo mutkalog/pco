@@ -27,13 +27,14 @@ void DowloadStateExecutor::execute(StateMachine &sm)
     {
         if (file.installPath != "/")
         {
-            fs::path rootEnvironmentPath = ctx.testingDir + file.installPath;
+            fs::path sandboxFilePath = sm.context.sb->getPath() / fs::path(file.installPath).relative_path();
+
             try
             {
-                fs::create_directories(rootEnvironmentPath.parent_path());
-                fs::path filename = rootEnvironmentPath.filename();
+                fs::create_directories(sandboxFilePath.parent_path());
+                fs::path filename = sandboxFilePath.filename();
                 if (filename.empty()) throw std::runtime_error("Wrong program name");
-                fs::rename(ctx.testingDir + "/" + filename.string(), rootEnvironmentPath);
+                fs::copy(ctx.testingDir / filename, sandboxFilePath);
             }
             catch (const std::exception& ex)
             {

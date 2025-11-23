@@ -40,6 +40,7 @@ public:
     fs::path groupdir() { return groupPath_ / "cont"; }
 
     void writeToFile(const fs::path& path, const std::string& value);
+
 private:
     fs::path createCgroupsHierarchy();
     fs::path groupPath_;

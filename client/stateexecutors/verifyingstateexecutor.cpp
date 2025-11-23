@@ -3,10 +3,6 @@
 #include "idlestateexecutor.h"
 #include "../../utils/utils.h"
 
-#include <filesystem>
-
-namespace fs = std::filesystem;
-
 void VerifyingStateExecutor::execute(StateMachine &sm)
 {
     auto& ctx = sm.context;
@@ -29,14 +25,7 @@ void VerifyingStateExecutor::execute(StateMachine &sm)
 
     for (const auto& file : ctx.manifest.files)
     {
-        // auto i = file.installPath.rfind('/');
-        // if (i == std::string::npos)
-        //     throw std::runtime_error("Invalid install path");
-
-        // std::string programName = file.installPath.substr(i + 1);
-        // std::string fileName    = ctx.testingDir + "/" + programName;
-
-        std::string fileName = ctx.testingDir + file.installPath;
+        fs::path fileName = fs::path(ctx.testingDir) / fs::path(file.installPath).filename();
 
         auto fileHash        = SSLUtils::sha256FromFile(fileName);
         auto manifestHash    = file.hash.value;
@@ -52,5 +41,4 @@ void VerifyingStateExecutor::execute(StateMachine &sm)
     ctx.hashsOk = true;
 
     sm.instance().transitTo(&EnvironmentBuildingStateExecutor::instance());
-
 }
