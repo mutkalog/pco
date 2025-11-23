@@ -20,6 +20,7 @@ public:
     virtual ~SandboxInspector() = default;
 
     virtual void inspect(UpdateContext& context) = 0;
+    virtual void cleanup(UpdateContext& context) = 0;
 };
 
 #endif // SANDBOX_H

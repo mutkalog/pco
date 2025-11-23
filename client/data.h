@@ -51,6 +51,7 @@ struct UpdateContext
     std::vector<pid_t> containeredProcesees;
     std::unique_ptr<Sandbox> sb;
     std::unique_ptr<SandboxInspector> sbi;
+    bool finalDecision;
 
     UpdateContext(std::string httpClientSettings);
 };
@@ -65,6 +66,7 @@ inline UpdateContext::UpdateContext(std::string httpClientSettings)
     , sb{std::make_unique<LinuxSandbox>()}
     , sbi{std::make_unique<LinuxSandboxInspector>()}
 #endif
+    , finalDecision{true}
 {
 }
 

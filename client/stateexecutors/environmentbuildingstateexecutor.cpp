@@ -9,7 +9,5 @@ void EnvironmentBuildingStateExecutor::execute(StateMachine &sm)
     sb->prepare(sm.context);
     sb->launch(sm.context);
 
-    // sleep(20);
-
     sm.instance().transitTo(&TestingStateExecutor::instance());
 }
