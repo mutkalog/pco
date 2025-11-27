@@ -1,6 +1,7 @@
 #include "testingstateexecutor.h"
 #include "../stateexecutors/commitingstateexecutor.h"
 #include "../statemachine.h"
+#include "../updatecontext.h"
 
 void TestingStateExecutor::execute(StateMachine &sm)
 {

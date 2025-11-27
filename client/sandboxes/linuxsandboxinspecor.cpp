@@ -5,7 +5,7 @@
 #include <fstream>
 #include <pwd.h>
 
-#include "../data.h"
+#include "../updatecontext.h"
 
 void LinuxSandboxInspector::createCgroup(UpdateContext &context)
 {

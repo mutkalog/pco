@@ -1,6 +1,6 @@
 #include "environmentbuildingstateexecutor.h"
 #include "../stateexecutors/testingstateexecutor.h"
-
+#include "../updatecontext.h"
 
 void EnvironmentBuildingStateExecutor::execute(StateMachine &sm)
 {

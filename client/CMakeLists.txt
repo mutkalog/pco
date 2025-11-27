@@ -12,9 +12,9 @@ find_library(ARCHIVE_LIB archive)
 
 add_executable(pco-client main.cpp
     statemachine.h statemachine.cpp
-    stateexecutors/updater.h stateexecutors/updater.cpp
+    stateexecutors/checkingstateexecutor.h stateexecutors/checkingstateexecutor.cpp
     archive.h archive.cpp
-    data.h
+    artifactmanifest.h
     stateexecutors/stateexecutor.h stateexecutors/stateexecutor.cpp
     stateexecutors/idlestateexecutor.h stateexecutors/idlestateexecutor.cpp
     stateexecutors/dowloadstateexecutor.h stateexecutors/dowloadstateexecutor.cpp
@@ -24,7 +24,10 @@ add_executable(pco-client main.cpp
     sandboxes/linuxsandbox.h sandboxes/linuxsandbox.cpp
     sandboxes/linuxsandboxinspecor.h sandboxes/linuxsandboxinspecor.cpp
     stateexecutors/testingstateexecutor.h stateexecutors/testingstateexecutor.cpp
-    stateexecutors/commitingstateexecutor.h stateexecutors/commitingstateexecutor.cpp)
+    stateexecutors/commitingstateexecutor.h stateexecutors/commitingstateexecutor.cpp
+    deviceinfo.h deviceinfo.cpp
+    artifactmanifest.cpp
+    updatecontext.h updatecontext.cpp)
 
 
 target_link_libraries(pco-client PRIVATE

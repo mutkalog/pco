@@ -1,32 +1,12 @@
-#ifndef UPDATER_H
-#define UPDATER_H
+#ifndef CHECKINGSTATEEXECUTOR_H
+#define CHECKINGSTATEEXECUTOR_H
 
 #include <httplib.h>
-#include "../data.h"
+#include "../artifactmanifest.h"
 #include "stateexecutor.h"
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::ordered_json;
-
-class Updater
-{
-public:
-    httplib::Client client;
-    void getManifest();
-    void downloadArtifactArchive();
-    Updater()
-        : client("http://localhost:8080")
-    {}
-
-private:
-    ArtifactManifest m_artifact;
-
-    void loadManifestFromJson(const nlohmann::json &data);
-
-};
-
-
-
 
 class CheckingStateExecutor final : public StateExecutor
 {
@@ -52,4 +32,4 @@ inline CheckingStateExecutor &CheckingStateExecutor::instance()
     return inst;
 }
 
-#endif // UPDATER_H
+#endif // CHECKINGSTATEEXECUTOR_H
