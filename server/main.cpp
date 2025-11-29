@@ -3,13 +3,31 @@
 #include <fstream>
 #include <unistd.h>
 
+#include <filesystem>
+namespace fs = std::filesystem;
 
 int main()
 {
     using namespace httplib;
-    Server server;
     using json = nlohmann::ordered_json;
-    std::string testdir = std::string(PROJECT_ROOT_DIR) + "/app2";
+
+    std::string testdir = std::string(PROJECT_ROOT_DIR) + "/app3";
+
+    std::string ca_cert     = fs::path(PROJECT_ROOT_DIR) / "mtls/ca.pem";
+    std::string server_cert = fs::path(PROJECT_ROOT_DIR) / "mtls/server/server.crt";
+    std::string server_key  = fs::path(PROJECT_ROOT_DIR) / "mtls/server/server.key";
+
+    SSLServer server(server_cert.c_str(), server_key.c_str(), ca_cert.c_str());
+
+    server.set_exception_handler(
+    [](const httplib::Request &req, httplib::Response &res, std::exception_ptr ep) {
+        try { std::rethrow_exception(ep); }
+        catch (const std::exception &e) {
+            std::cerr << "Handler exception: " << e.what() << std::endl;
+        }
+        res.status = 500;
+        res.set_content("internal error", "text/plain");
+    });
 
     server.Get("/manifest", [&](const Request& req, Response& res) {
         std::cout << req.method << std::endl;
@@ -63,5 +81,5 @@ int main()
     });
 
 
-    server.listen("0.0.0.0", 8080);
+    server.listen("0.0.0.0", 39024);
 }

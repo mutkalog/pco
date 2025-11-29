@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(mycrypto STATIC
   utils.cpp
   utils.h
+  messagequeue.h
 )
 
 target_compile_definitions(mycrypto PRIVATE UTILS_LIBRARY)

@@ -1,14 +1,15 @@
 #include "deviceinfo.h"
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
-#include <filesystem>
+
 
 namespace fs = std::filesystem;
 
 namespace {
-const fs::path CONF_PATH             = "/var/pco/devconfig.json";
-const fs::path LAST_UPDATE_INFO_PATH = "/var/pco/last-update.json";
+    const fs::path CONF_PATH = "/var/pco/devconfig.json";
+    const fs::path LAST_UPDATE_INFO_PATH = "/var/pco/last-update.json";
 }
 
 DeviceInfo::DeviceInfo()
@@ -69,8 +70,6 @@ void DeviceInfo::saveNewUpdateInfo(const ArtifactManifest& newManifest)
 
     if (!lastManifestFile.write(stringRepresentation.data(), stringRepresentation.size()))
         throw std::runtime_error("DeviceInfo: Cannot write to file!");
-
-    prevManifest_ = newManifest;
 }
 
 

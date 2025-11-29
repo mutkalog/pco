@@ -3,6 +3,10 @@
 
 find_library(ARCHIVE_LIB archive)
 
+# Если установил в /usr/local (классика):
+# find_library(ARCHIVE_LIB archive )
+
+
 # set(ARCHIVE_LIB /usr/lib/x86_64-linux-gnu/libarchive.a)
 # include_directories("/home/alexander/Projects/posix-compatable-ota/cpp-httplib")
 
@@ -10,7 +14,7 @@ add_executable(pco-client-ota ota/main.cpp
     ota/statemachine.h ota/statemachine.cpp
     ota/stateexecutors/checkingstateexecutor.h ota/stateexecutors/checkingstateexecutor.cpp
     ota/archive.h ota/archive.cpp
-    artifactmanifest.h  artifactmanifest.cpp
+    artifactmanifest.h
     ota/stateexecutors/stateexecutor.h ota/stateexecutors/stateexecutor.cpp
     ota/stateexecutors/idlestateexecutor.h ota/stateexecutors/idlestateexecutor.cpp
     ota/stateexecutors/dowloadstateexecutor.h ota/stateexecutors/dowloadstateexecutor.cpp
@@ -21,13 +25,13 @@ add_executable(pco-client-ota ota/main.cpp
     ota/sandboxes/linuxsandboxinspecor.h ota/sandboxes/linuxsandboxinspecor.cpp
     ota/stateexecutors/testingstateexecutor.h ota/stateexecutors/testingstateexecutor.cpp
     ota/stateexecutors/commitingstateexecutor.h ota/stateexecutors/commitingstateexecutor.cpp
-    deviceinfo.h deviceinfo.cpp
-    ota/updatecontext.h ota/updatecontext.cpp
-    processmanager.h processmanager.cpp)
+    ota/deviceinfo.h ota/deviceinfo.cpp
+    ota/artifactmanifest.cpp
+    ota/updatecontext.h ota/updatecontext.cpp)
 
-target_compile_definitions(pco-client-ota PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
 
 target_link_libraries(pco-client-ota PRIVATE
+    # ${HTTPLIB}
     ${ARCHIVE_LIB}
     mycrypto
     z
@@ -35,11 +39,28 @@ target_link_libraries(pco-client-ota PRIVATE
     lzma
     zstd
     lz4
-    ssl
     crypto
     acl
 )
 
+add_executable(pco-client-runner main.cpp
+    statemachine.h statemachine.cpp
+    stateexecutors/checkingstateexecutor.h stateexecutors/checkingstateexecutor.cpp
+    archive.h archive.cpp
+    artifactmanifest.h
+    stateexecutors/stateexecutor.h stateexecutors/stateexecutor.cpp
+    stateexecutors/idlestateexecutor.h stateexecutors/idlestateexecutor.cpp
+    stateexecutors/dowloadstateexecutor.h stateexecutors/dowloadstateexecutor.cpp
+    stateexecutors/verifyingstateexecutor.h stateexecutors/verifyingstateexecutor.cpp
+    stateexecutors/environmentbuildingstateexecutor.h stateexecutors/environmentbuildingstateexecutor.cpp
+    sandboxes/sandbox.cpp sandboxes/sandbox.h
+    sandboxes/linuxsandbox.h sandboxes/linuxsandbox.cpp
+    sandboxes/linuxsandboxinspecor.h sandboxes/linuxsandboxinspecor.cpp
+    stateexecutors/testingstateexecutor.h stateexecutors/testingstateexecutor.cpp
+    stateexecutors/commitingstateexecutor.h stateexecutors/commitingstateexecutor.cpp
+    deviceinfo.h deviceinfo.cpp
+    artifactmanifest.cpp
+    updatecontext.h updatecontext.cpp)
 
 include(GNUInstallDirs)
 install(TARGETS pco-client-ota
