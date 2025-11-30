@@ -13,6 +13,7 @@ public:
 
     enum StateId : size_t
     {
+        REGISTRATION,
         IDLE,
         CHECKING,
         DOWNLOADING,
@@ -20,7 +21,8 @@ public:
         BUILDING_ENVIRONMENT,
         TESTING,
         COMMITING,
-        TOTAL = 7
+        FINALIZING,
+        TOTAL
     };
 
     StateExecutor(enum StateId id) : id_(id) {}

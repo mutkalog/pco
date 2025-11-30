@@ -10,7 +10,7 @@ add_executable(pco-client-ota ota/main.cpp
     ota/statemachine.h ota/statemachine.cpp
     ota/stateexecutors/checkingstateexecutor.h ota/stateexecutors/checkingstateexecutor.cpp
     ota/archive.h ota/archive.cpp
-    artifactmanifest.h  artifactmanifest.cpp
+    ota/artifactmanifest.h  ota/artifactmanifest.cpp
     ota/stateexecutors/stateexecutor.h ota/stateexecutors/stateexecutor.cpp
     ota/stateexecutors/idlestateexecutor.h ota/stateexecutors/idlestateexecutor.cpp
     ota/stateexecutors/dowloadstateexecutor.h ota/stateexecutors/dowloadstateexecutor.cpp
@@ -21,9 +21,11 @@ add_executable(pco-client-ota ota/main.cpp
     ota/sandboxes/linuxsandboxinspecor.h ota/sandboxes/linuxsandboxinspecor.cpp
     ota/stateexecutors/testingstateexecutor.h ota/stateexecutors/testingstateexecutor.cpp
     ota/stateexecutors/commitingstateexecutor.h ota/stateexecutors/commitingstateexecutor.cpp
-    deviceinfo.h deviceinfo.cpp
+    ota/deviceinfo.h ota/deviceinfo.cpp
     ota/updatecontext.h ota/updatecontext.cpp
-    processmanager.h processmanager.cpp)
+    ota/processmanager.h ota/processmanager.cpp
+    ota/stateexecutors/finalizingstateexecutor.h ota/stateexecutors/finalizingstateexecutor.cpp
+    ota/stateexecutors/registrationexecutor.h ota/stateexecutors/registrationexecutor.cpp)
 
 target_compile_definitions(pco-client-ota PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
 

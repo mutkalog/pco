@@ -10,7 +10,9 @@
 #include <sys/wait.h>
 #include <spawn.h>
 #include <unistd.h>
-#include "../utils/messagequeue.h"
+#include "../../utils/messagequeue.h"
+
+#include "artifactmanifest.h"
 
 struct ChildInfo {
     pid_t pid;
@@ -26,13 +28,10 @@ public:
 
     ~ProcessManager();
 
-    // запустить процесс, вернуть pid или -1
-    pid_t launchProcess(const std::string &path, char *const argv[]);
+    pid_t launchProcess(const ArtifactManifest::File& file);
 
-    // мягко завершить все процессы, ждать timeout_ms, затем добивать
     void terminateAll(int timeout_ms);
 
-    // можно читать статусов/список текущих PID
     std::vector<ChildInfo> listChildren();
 
 private:

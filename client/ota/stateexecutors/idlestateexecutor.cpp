@@ -11,41 +11,6 @@ void IdleStateExecutor::execute(StateMachine &sm)
 
     if (firstTime == false)
     {
-
-        // if (sm.context.devinfo->prevManifest().files.empty() == false)
-        // {
-        //     for (const auto& file : sm.context.devinfo->prevManifest().files)
-        //     {
-        //         char * argv[] = { const_cast<char*>(file.installPath.c_str()), nullptr};
-
-        //         if (sm.context.pm->launchProcess(file.installPath, argv) == -1)
-        //             throw std::runtime_error("Cannot launch " + file.installPath);
-
-        //         // if (sm.context.pm->launchProcess(file.installPath, argv) == -1)
-        //         //     throw std::runtime_error("Cannot launch " + file.installPath);
-        //     }
-
-        //     // std::this_thread::sleep_for(std::chrono::minutes(sm.context.devinfo->polingIntervalMinutes()));
-        //     // std::this_thread::sleep_for(std::chrono::seconds(10));
-        //     for (auto p : sm.context.pm->listChildren())
-        //     {
-        //         std::cout << p.name << " " << p.pid << " " << p.lastStatus << std::endl;
-        //     }
-
-        //     std::this_thread::sleep_for(std::chrono::seconds(10));
-
-        //     sm.context.pm->terminateAll(1000);
-        //     for (auto p : sm.context.pm->listChildren())
-        //     {
-        //         std::cout << p.name << " " << p.pid << " " << p.lastStatus << std::endl;
-        //     }
-
-        // }
-        // else
-        // {
-        //     std::this_thread::sleep_for(std::chrono::minutes(sm.context.devinfo->polingIntervalMinutes()));
-        // }
-
         watchProcesses(sm.context, 2000);
     }
 
@@ -56,8 +21,8 @@ void IdleStateExecutor::execute(StateMachine &sm)
 
 void IdleStateExecutor::watchProcesses(UpdateContext& ctx, int gracefullExitMillis)
 {
-    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
-    // auto deadline = std::chrono::steady_clock::now() + std::chrono::minutes(ctx.devinfo->polingIntervalMinutes());
+    // auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::minutes(ctx.devinfo->polingIntervalMinutes());
     int failedStartsCount = 0;
     while (true)
     {
@@ -66,11 +31,8 @@ void IdleStateExecutor::watchProcesses(UpdateContext& ctx, int gracefullExitMill
             std::cout << "Launching processes" << std::endl;
             for (const auto &file : ctx.devinfo->prevManifest().files)
             {
-                ///@todo аргументы
-                char *argv[] = {const_cast<char *>(file.installPath.c_str()), nullptr};
-
-                if (ctx.pm->launchProcess(file.installPath, argv) == -1)
-                    throw std::runtime_error("Cannot launch " + file.installPath);
+                if (ctx.pm->launchProcess(file) == -1)
+                    throw std::runtime_error("Cannot launch " + file.installPath.string());
             }
         }
 

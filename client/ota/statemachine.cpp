@@ -1,7 +1,7 @@
 #include "statemachine.h"
 
-#include "stateexecutors/idlestateexecutor.h"
+#include "stateexecutors/registrationexecutor.h"
 
 StateMachine::StateMachine()
-    : currentSE_(&IdleStateExecutor::instance())
+    : currentSE_(&RegistrationExecutor::instance())
 {}

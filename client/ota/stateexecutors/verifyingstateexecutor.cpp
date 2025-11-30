@@ -1,6 +1,6 @@
 #include "verifyingstateexecutor.h"
 #include "environmentbuildingstateexecutor.h"
-#include "idlestateexecutor.h"
+#include "finalizingstateexecutor.h"
 #include "../../../utils/utils.h"
 
 void VerifyingStateExecutor::execute(StateMachine &sm)
@@ -32,14 +32,18 @@ void VerifyingStateExecutor::execute(StateMachine &sm)
 
         if (isHashsEquals(fileHash, manifestHash) == false)
         {
-            sm.instance().transitTo(&IdleStateExecutor::instance());
-            std::cout << "Hashes are not equal" << std::endl;
+            std::string message = "Hashes are not equal";
+            std::cout << message << std::endl;
+            ctx.reportMessage =
+            {
+                HASHES_NOT_EQUAL,
+                message
+            };
 
+            sm.transitTo(&FinalizingStateExecutor::instance());
             return;
         }
     }
-
-    ctx.hashsOk = true;
 
     sm.instance().transitTo(&EnvironmentBuildingStateExecutor::instance());
 }

@@ -1,3 +1,4 @@
+#include "finalizingstateexecutor.h"
 #include "testingstateexecutor.h"
 #include "../stateexecutors/commitingstateexecutor.h"
 #include "../statemachine.h"
@@ -5,12 +6,24 @@
 
 void TestingStateExecutor::execute(StateMachine &sm)
 {
-    auto& sb = sm.context.sb;
+    auto& ctx = sm.context;
+    auto& sbi = ctx.sbi;
 
-    sm.context.sbi->inspect(sm.context);
-    sm.context.sbi->cleanup(sm.context);
+    try
+    {
+        ctx.busyResources.sandboxInspector = 1;
+        sbi->inspect(sm.context);
+    }
+    catch (const std::exception& ex)
+    {
+        ctx.reportMessage.first  = TEST_FAILED;
+        std::string message      = std::string("SandboxInspector: ") + ex.what();
+        ctx.reportMessage.second += message;
 
-    sb->cleanup(sm.context);
+        std::cout << message << std::endl;
+        sm.instance().transitTo(&FinalizingStateExecutor::instance());
+        return;
+    }
 
     sm.instance().transitTo(&CommitingStateExecutor::instance());
 }

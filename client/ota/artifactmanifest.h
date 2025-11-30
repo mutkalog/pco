@@ -7,6 +7,9 @@
 #include <nlohmann/json.hpp>
 
 #include <bits/types/struct_tm.h>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 
 struct ArtifactManifest
@@ -21,25 +24,27 @@ struct ArtifactManifest
 
     struct File {
         bool isExecutable;
-        std::string installPath;
+        fs::path installPath;
+        std::vector<std::string> args;
         struct {
             std::string algo;
             std::vector<uint8_t> value;
         } hash;
     };
 
-    struct {
-        std::string algo;
-        std::string keyName;
-        std::string base64value;
-    } signature;
-
     std::vector<File> files;
-    std::vector<std::string> requiredSharedLibraries;
+
+    struct {
+        uint32_t timeSeconds;
+        double   cpuLimitPercentage;
+        double   memLimitPercentage;
+        double   throttleLimitPercentage;
+    } testRequirments;
 
 public:
     void loadFromJson(const nlohmann::json &data);
     nlohmann::json saveInJson() const;
+    static std::vector<char *> getFileArgs(const File& file);
 
 private:
     std::vector<uint8_t> rawHashFromString(const std::string& stringHash);

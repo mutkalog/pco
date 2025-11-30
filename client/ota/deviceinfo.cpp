@@ -1,44 +1,16 @@
 #include "deviceinfo.h"
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
 
-
-namespace fs = std::filesystem;
-
 namespace {
-    const fs::path CONF_PATH = "/var/pco/devconfig.json";
-    const fs::path LAST_UPDATE_INFO_PATH = "/var/pco/last-update.json";
+const fs::path CONF_PATH             = "/var/pco/devconfig.json";
+const fs::path LAST_UPDATE_INFO_PATH = "/var/pco/last-update.json";
 }
 
 DeviceInfo::DeviceInfo()
 {
-    std::ifstream configfile(CONF_PATH, std::ios_base::binary);
-    if (!configfile)
-        throw std::system_error(std::error_code(errno, std::generic_category()),
-                                "Cannot open configfile " + CONF_PATH.string());
-
-    try
-    {
-        json devConfig = json::parse(configfile);
-
-        type_                   = devConfig["type"].get<std::string>();
-        place_                  = devConfig["place"].get<std::string>();
-        pollingIntervalMinutes_ = devConfig["updatePollingIntervalMinutes"].get<int>();
-        serverUrl_              = devConfig["serverURL"].get<std::string>();
-    }
-    catch (const std::exception& ex)
-    {
-        std::cout << ex.what() << std::endl;
-        exit(77);
-        throw;
-    }
-    std::cout << "DeviceInfo: loaded config: \n"
-                "\ttype = "            << type_                   << "\n"
-                "\tplace = "           << place_                  << "\n"
-                "\tpollingInterval = " << pollingIntervalMinutes_ << "\n"
-                "\tserverURL = "       << serverUrl_              << std::endl;
+    loadConfig();
 
     std::ifstream lastManifestFile(LAST_UPDATE_INFO_PATH, std::ios_base::binary);
     if (!lastManifestFile)
@@ -51,11 +23,44 @@ DeviceInfo::DeviceInfo()
             return;
         }
         else
+        {
             throw std::system_error(std::error_code(errno, std::generic_category()),
                                     "Cannot open last update file " + LAST_UPDATE_INFO_PATH.string());
+        }
     }
 
     prevManifest_.loadFromJson(json::parse(lastManifestFile));
+}
+
+void DeviceInfo::loadConfig()
+{
+    std::ifstream configFile(CONF_PATH, std::ios_base::binary);
+    if (!configFile)
+        throw std::system_error(std::error_code(errno, std::generic_category()),
+                                "Cannot open configfile " + CONF_PATH.string());
+
+    json devConfig = json::parse(configFile);
+
+    type_                   = devConfig["type"]                        .get<std::string>();
+    platform_               = devConfig["platform"]                    .get<std::string>();
+    pollingIntervalMinutes_ = devConfig["updatePollingIntervalMinutes"].get<int>();
+    serverUrl_              = devConfig["serverURL"]                   .get<std::string>();
+    serverPort_             = devConfig["serverPort"]                  .get<int>();
+    certPath_               = devConfig["certPath"]                    .get<std::string>();
+    keyPath_                = devConfig["keyPath"]                     .get<std::string>();
+    caCertPath_             = devConfig["caCertPath"]                  .get<std::string>();
+    id_                     = devConfig.value("id", uint32_t());
+
+    std::cout << "DeviceInfo: loaded config: \n"
+                "\ttype = "            << type_                   << "\n"
+                "\tplatform = "        << platform_               << "\n"
+                "\tpollingInterval = " << pollingIntervalMinutes_ << "\n"
+                "\tserverURL = "       << serverUrl_              << "\n"
+                "\tserverPort = "      << serverPort_             << "\n"
+                "\tcertPath = "        << certPath_               << "\n"
+                "\tkeyPath = "         << keyPath_                << "\n"
+                "\tcaCertPath = "      << caCertPath_             << "\n"
+                "\tid = "              << id_                     << std::endl;
 }
 
 void DeviceInfo::saveNewUpdateInfo(const ArtifactManifest& newManifest)
@@ -69,8 +74,37 @@ void DeviceInfo::saveNewUpdateInfo(const ArtifactManifest& newManifest)
     std::string stringRepresentation = data.dump();
 
     if (!lastManifestFile.write(stringRepresentation.data(), stringRepresentation.size()))
-        throw std::runtime_error("DeviceInfo: Cannot write to file!");
+        throw std::runtime_error("Cannot write to file!");
+
+    prevManifest_ = newManifest;
 }
+
+void DeviceInfo::saveId(uint32_t id)
+{
+    std::ifstream in(CONF_PATH);
+    if (!in)
+        throw std::system_error(std::error_code(errno, std::generic_category()),
+                                "Cannot open configfile " + CONF_PATH.string());
+
+    json config = json::parse(in);
+    in.close();
+
+    config["id"] = id;
+
+    std::ofstream out(CONF_PATH);
+    if (!out)
+        throw std::system_error(std::error_code(errno, std::generic_category()),
+                                "Cannot open configfile " + CONF_PATH.string());
+
+    std::string stringRepresentation = config.dump(4);
+    if (!out.write(stringRepresentation.data(), stringRepresentation.size()))
+        throw std::runtime_error("Cannot write to file!");
+
+    out.close();
+
+    loadConfig();
+}
+
 
 
 

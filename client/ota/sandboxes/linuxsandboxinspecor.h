@@ -26,7 +26,7 @@ public:
 
 
 public:
-    LinuxSandboxInspector(): groupPath_("/sys/fs/cgroup/pco") {}
+    LinuxSandboxInspector(): groupPath_("/sys/fs/cgroup/pco"), busyResources_() {}
 
     void createCgroup(UpdateContext& context);
     virtual void inspect(UpdateContext& context) override;
@@ -38,12 +38,20 @@ public:
     bool hasFinished();
     fs::path basepath() { return groupPath_; }
     fs::path groupdir() { return groupPath_ / "cont"; }
-
-    void writeToFile(const fs::path& path, const std::string& value);
+    
+    void writeToFile(const fs::path& path, const std::string& value, bool append = false);
 
 private:
     fs::path createCgroupsHierarchy();
     fs::path groupPath_;
+    struct
+    {
+        uint16_t groupPathCreated : 1;
+        uint16_t cgroupMounted    : 1;
+        uint16_t groupDirCreated  : 1;
+        uint16_t processesAdded   : 1;
+        uint16_t reserved         : 12;
+    } busyResources_;
 };
 
 template<typename T>

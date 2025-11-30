@@ -1,7 +1,7 @@
 #include "commitingstateexecutor.h"
 #include "../statemachine.h"
 
-#include "../stateexecutors/idlestateexecutor.h"
+#include "finalizingstateexecutor.h"
 #include "../updatecontext.h"
 #include <filesystem>
 
@@ -17,8 +17,7 @@ void CommitingStateExecutor::execute(StateMachine &sm)
                   << text
                   << ". Rollback" << std::endl;
 
-        fs::remove_all(ctx.testingDir);
-        sm.instance().transitTo(&IdleStateExecutor::instance());
+        sm.instance().transitTo(&FinalizingStateExecutor::instance());
     };
 
     if (ctx.finalDecision == true)
@@ -53,13 +52,13 @@ void CommitingStateExecutor::execute(StateMachine &sm)
                 if (fs::copy_file(file.installPath,
                                   parentpath / "rollback-backup" / filename) == false)
                 {
-                    onError(std::string("cannot copy ") + file.installPath);
+                    onError(std::string("cannot copy ") + file.installPath.string());
                     return;
                 }
 
                 if (fs::remove(file.installPath) == false)
                 {
-                    onError(std::string("cannot remove ") + file.installPath);
+                    onError(std::string("cannot remove ") + file.installPath.string());
                     return;
                 }
             }
@@ -73,7 +72,7 @@ void CommitingStateExecutor::execute(StateMachine &sm)
 
             if (fs::remove(ctx.testingDir / filename) == false)
             {
-                onError(std::string("cannot copy ") +
+                onError(std::string("cannot remove ") +
                         (ctx.testingDir / filename).string());
                 return;
             }
@@ -81,25 +80,20 @@ void CommitingStateExecutor::execute(StateMachine &sm)
         try
         {
             ctx.devinfo->saveNewUpdateInfo(ctx.manifest);
+            std::cout << "Update was successfully commited!" << std::endl;
         }
         catch (const std::exception& ex)
         {
             std::cout << ex.what() << std::endl;
             onError("cannot save new manifest file ");
+            sm.instance().transitTo(&FinalizingStateExecutor::instance());
             return;
         }
-
-        std::cout << "Update was successfully commited!" << std::endl;
     }
     else
     {
         std::cout << "Update was canceled!" << std::endl;
     }
 
-    fs::remove_all(ctx.testingDir);
-
-    ///@todo сохранять файл, содержащий контекст и запускать программу
-    ///      далее на этапе download (или придумать другой этап) сравнивать манифест с пришедшим файлом, выключать программы,
-    ///      и в случае успеха, на этом этапе класть эти старые программы в одтельную папку со старым манифестом.
-    sm.instance().transitTo(&IdleStateExecutor::instance());
+    sm.instance().transitTo(&FinalizingStateExecutor::instance());
 }

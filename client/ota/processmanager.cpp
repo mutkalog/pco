@@ -20,11 +20,13 @@ ProcessManager::~ProcessManager()
     supervisorThread_.join();
 }
 
-pid_t ProcessManager::launchProcess(const std::string &path, char * const argv[])
+pid_t ProcessManager::launchProcess(const ArtifactManifest::File& file)
 {
     pid_t child = 0;
 
-    int rc = posix_spawn(&child, path.c_str(), nullptr, nullptr, argv, environ);
+    auto args = ArtifactManifest::getFileArgs(file);
+
+    int rc = posix_spawn(&child, file.installPath.c_str(), nullptr, nullptr, args.data(), environ);
     if (rc != 0)
     {
         std::cout << "ProcessManager: posix_spawn failed: " << rc << std::endl;
@@ -33,7 +35,7 @@ pid_t ProcessManager::launchProcess(const std::string &path, char * const argv[]
 
     {
         std::lock_guard<std::mutex> lg(mtx_);
-        children_.push_back(ChildInfo{child, path, -1});
+        children_.push_back(ChildInfo{child, file.installPath, -1});
     }
 
     cv_.notify_all();
@@ -72,7 +74,9 @@ void ProcessManager::terminateAll(int timeoutMillis)
     {
         std::lock_guard<std::mutex> lg(mtx_);
         for (auto &c : children_)
+        {
             kill(c.pid, SIGKILL);
+        }
     }
 }
 

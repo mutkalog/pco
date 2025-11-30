@@ -1,7 +1,7 @@
 #include "dowloadstateexecutor.h"
 #include "../statemachine.h"
 #include "../archive.h"
-#include "idlestateexecutor.h"
+#include "finalizingstateexecutor.h"
 #include "verifyingstateexecutor.h"
 
 #include <filesystem>
@@ -12,16 +12,26 @@ void DowloadStateExecutor::execute(StateMachine &sm)
 {
     auto& ctx = sm.context;
 
-    auto res = ctx.client->Get("/download?type=rpi4&place=machine&id=72");
+    std::string queryString = std::string("/download?type=") + ctx.devinfo->type() + "&id=" + std::to_string(ctx.devinfo->id());
+    auto res = ctx.client->Get(queryString);
     std::vector<uint8_t> data(res->body.size());
     std::memcpy(data.data(), res->body.data(), res->body.size());
 
-    if (extract(data.data(), data.size(),
-            ctx.testingDir.c_str()) != 0)
+    if (extract(data.data(), data.size(), ctx.testingDir.c_str()) != 0)
     {
-        sm.transitTo(&IdleStateExecutor::instance());
-        throw std::runtime_error("Cannot extract files");
+        std::string message = "Cannot extract files from archive";
+        std::cout << message << std::endl;
+        ctx.reportMessage =
+        {
+            INTERNAL_UPDATE_ERROR,
+            message
+        };
+
+        sm.transitTo(&FinalizingStateExecutor::instance());
+        return;
     }
+
+    ctx.busyResources.testingDirCreated = 1;
 
     for (const auto& file : ctx.manifest.files)
     {
@@ -33,14 +43,22 @@ void DowloadStateExecutor::execute(StateMachine &sm)
             {
                 fs::create_directories(sandboxFilePath.parent_path());
                 fs::path filename = sandboxFilePath.filename();
-                if (filename.empty()) throw std::runtime_error("Wrong program name");
+                if (filename.empty())
+                    throw std::runtime_error("Wrong program name");
                 fs::copy(ctx.testingDir / filename, sandboxFilePath);
             }
             catch (const std::exception& ex)
             {
                 std::cout << ex.what() << std::endl;
-                sm.transitTo(&IdleStateExecutor::instance());
-                exit(1);
+
+                ctx.reportMessage =
+                {
+                    INTERNAL_UPDATE_ERROR,
+                    std::string("Cannot create testing directories\n") + ex.what()
+                };
+
+                sm.transitTo(&FinalizingStateExecutor::instance());
+                return;
             }
         }
     }

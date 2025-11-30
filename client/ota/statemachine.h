@@ -14,10 +14,7 @@ public:
 
     enum StateExecutor::StateId state() { return currentSE_->id(); }
 
-    void transitTo(StateExecutor *se) {
-        std::cout << "Transition to " << se->textId() << " state" << std::endl;
-        currentSE_ = se;
-    }
+    void transitTo(StateExecutor *se);
 
     void run() { currentSE_->execute(*this); }
 
@@ -28,5 +25,10 @@ private:
 
     StateExecutor *currentSE_;
 };
+
+inline void StateMachine::transitTo(StateExecutor *se) {
+    std::cout << "Transition to " << se->textId() << " state" << std::endl;
+    currentSE_ = se;
+}
 
 #endif // STATEMACHINE_H

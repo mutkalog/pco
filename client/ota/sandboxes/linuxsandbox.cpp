@@ -69,12 +69,12 @@ void LinuxSandbox::prepare(UpdateContext &context)
                     socketReport(CHILD, msg, "wrong filename failed");
                 }
 
-                char* argv[2] = {const_cast<char*>(programName.c_str()), nullptr};
+                // char* argv[2] = {const_cast<char*>(programName.c_str()), nullptr};
 
-                ////@todo параметры, передаваемые программе
                 pid_t childPid = 0;
+                auto args = ArtifactManifest::getFileArgs(files[i]);
                 if (posix_spawn(&childPid, path.c_str(),
-                            nullptr, nullptr, argv, nullptr) != 0)
+                                nullptr, nullptr, args.data(), nullptr) != 0)
                 {
                     std::memset(&msg, 0, sizeof(msg));
                     msg.type = STATUS_CODE;
@@ -106,6 +106,7 @@ void LinuxSandbox::prepare(UpdateContext &context)
                      break;
                 }
             }
+            break;
 
             int status;
             int rc;
@@ -182,9 +183,7 @@ void LinuxSandbox::launch(UpdateContext &context)
         socketReport(PARENT, msg, "Launch command sent");
         break;
     default:
-        throw std::runtime_error("LinuxSandbox: deployment failed");
-
-        break;
+        throw std::runtime_error("Deployment failed");
     }
 
     const auto& files = context.manifest.files;
@@ -194,36 +193,39 @@ void LinuxSandbox::launch(UpdateContext &context)
         if (files[i].isExecutable == true)
         {
             auto receivedMsg = socketRead(PARENT);
-            if (receivedMsg.type == STATUS_CODE && msg.type)
+            if (receivedMsg.type == PROCESS_ID)
+            {
+                context.containeredProcesees.push_back(receivedMsg.processInfo.pid);
 
-            if (receivedMsg.type != PROCESS_ID && receivedMsg.type != STATUS_CODE)
+                std::memset(&msg, 0, sizeof(msg));
+                msg.type    = COMMAND;
+                msg.command = RUN_NEXT;
+
+                socketReport(PARENT, msg, "Launch next process command sent");
+            }
+            else if (receivedMsg.type == STATUS_CODE)
+            {
+                throw std::runtime_error("Failed to start app");
+            }
+            else
+            {
                  throw std::runtime_error("Wrong message received. "
-                                         "Must be PROCESS_ID, "
+                                         "Must be PROCESS_ID or STATUS_CODE, "
                                          "received " + std::to_string(msg.type));
-
-            context.containeredProcesees.push_back(receivedMsg.processInfo.pid);
-
-            std::memset(&msg, 0, sizeof(msg));
-            msg.type    = COMMAND;
-            msg.command = RUN_NEXT;
-
-            socketReport(PARENT, msg, "Launch next process command sent");
+            }
         }
     }
 }
 
 void LinuxSandbox::cleanup(UpdateContext &context)
 {
-    try
+    if (busyResources_.sandbox == 1)
     {
         fs::remove_all(path_);
+        std::cout << "LinuxSandbox: sandbox removed" << std::endl;
     }
-    catch (const fs::filesystem_error &ex)
-    {
-        std::cout << ex.what() << std::endl;
-        // debug-mode
-        throw;
-    }
+
+    busyResources_.sandbox = 0;
 }
 
 std::pair<pid_t, int> LinuxSandbox::getReturnCode()
@@ -277,10 +279,13 @@ void LinuxSandbox::buildSandbox()
     if (rc != 0)
         socketReport(CHILD, message, "umount() failed");
 
-    try {
+    try
+    {
         fs::remove_all("/oldroot");
-    } catch (const fs::filesystem_error &ex) {
-        std::cout << ex.what() << std::endl;
+    }
+    catch (const fs::filesystem_error &ex)
+    {
+        socketReport(CHILD, message, "remove_all(/oldroot) failed");
     }
 
     message.status = OK;
@@ -407,6 +412,8 @@ void LinuxSandbox::createRootfs(const UpdateContext &context)
 
         if (fs::create_directory(directory) == false)
             throw std::runtime_error("Cannot create rootfs directory \"" + directory.string() + "\"");
+
+        busyResources_.sandbox = 1;
     }
 }
 

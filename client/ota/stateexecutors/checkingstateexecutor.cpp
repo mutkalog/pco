@@ -12,8 +12,7 @@ void CheckingStateExecutor::execute(StateMachine &sm)
 {
     auto& ctx = sm.context;
 
-    ///@todo добавить id
-    std::string queryString = "/manifest?type=" + ctx.devinfo->type();
+    std::string queryString = "/manifest?type=" + ctx.devinfo->type() + "&id=" + std::to_string(ctx.devinfo->id());
     auto res  = ctx.client->Get(queryString);
 
     if (!res) {
@@ -24,7 +23,6 @@ void CheckingStateExecutor::execute(StateMachine &sm)
         std::cerr << "httplib Get failed, openssl err: " << buf << "\n";
     }
 
-    auto st = res->status;
     json data = json::parse(res->body);
 
     std::string rawManifest        = data["manifest"].get<std::string>();
@@ -39,9 +37,19 @@ void CheckingStateExecutor::execute(StateMachine &sm)
     {
         std::cout << "Signature has not been verified" << std::endl;
         sm.transitTo(&IdleStateExecutor::instance());
+        return;
     }
 
-    ctx.manifest.loadFromJson(json::parse(rawManifest));
+    try
+    {
+        ctx.manifest.loadFromJson(json::parse(rawManifest));
+    }
+    catch (...)
+    {
+        std::cout << "JSON parsing error" << std::endl;
+        sm.transitTo(&IdleStateExecutor::instance());
+        return;
+    }
 
     if (verificateRelease(ctx.manifest, ctx.devinfo.get()) == true)
     {

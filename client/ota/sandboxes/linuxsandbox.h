@@ -28,7 +28,7 @@ using raw_message_t = std::array<char, sizeof(Message)>;
 class LinuxSandbox : public Sandbox
 {
 public:
-    LinuxSandbox(const fs::path& path) : path_(path) {}
+    LinuxSandbox(const fs::path& path) : path_(path), busyResources_() {}
 
     enum Responses : int { OK = 0, FAIL = -1 };
     enum Comands   : int { RUN = 1, RUN_NEXT = 2, ABORT = -1 };
@@ -58,6 +58,12 @@ private:
     int socketsFds_[TOTAL];
     void socketReport(int sockFd, Message msg, const std::string &logMessage);
     Message socketRead(int sockFd);
+
+    struct
+    {
+        uint16_t sandbox  : 1;
+        uint16_t reserved : 15;
+    } busyResources_;
 };
 
 

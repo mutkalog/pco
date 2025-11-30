@@ -11,7 +11,7 @@ int main()
     using namespace httplib;
     using json = nlohmann::ordered_json;
 
-    std::string testdir = std::string(PROJECT_ROOT_DIR) + "/app3";
+    std::string testdir = std::string(PROJECT_ROOT_DIR) + "/app4";
 
     std::string ca_cert     = fs::path(PROJECT_ROOT_DIR) / "mtls/ca.pem";
     std::string server_cert = fs::path(PROJECT_ROOT_DIR) / "mtls/server/server.crt";
@@ -33,9 +33,8 @@ int main()
         std::cout << req.method << std::endl;
         std::cout << req.path << std::endl;
         std::cout << req.body << std::endl;
-        // std::cout << req.get_param_value("id") << std::endl;
-        // std::cout << req.get_param_value("place") << std::endl;
-        // std::cout << req.get_param_value("type") << std::endl;
+        std::cout << req.get_param_value("id") << std::endl;
+        std::cout << req.get_param_value("type") << std::endl;
 
         json jsonbody;
 
@@ -65,9 +64,8 @@ int main()
     server.Get("/download", [&](const Request& req, Response& res) {
         std::cout << req.method << std::endl;
         std::cout << req.path << std::endl;
-        // std::cout << req.get_param_value("id") << std::endl;
-        // std::cout << req.get_param_value("place") << std::endl;
-        // std::cout << req.get_param_value("type") << std::endl;
+        std::cout << req.get_param_value("id") << std::endl;
+        std::cout << req.get_param_value("type") << std::endl;
 
         std::ifstream fArchive(testdir + "/app.tar.gz");
         if (!fArchive) {
@@ -80,6 +78,33 @@ int main()
         res.set_content(reinterpret_cast<const char*>(raw.data()), raw.size(), "application/gzip");
     });
 
+
+    server.Post("/report", [&](const Request& req, Response& res) {
+        std::cout << req.method << std::endl;
+        std::cout << req.path << std::endl;
+
+        std::cout << req.body << std::endl;
+
+        res.status = 200;
+    });
+
+    server.Post("/register", [&](const Request& req, Response& res) {
+        std::cout << req.method << std::endl;
+        std::cout << req.path << std::endl;
+
+        std::cout << req.body << std::endl;
+
+        json jsonbody;
+
+        jsonbody["status"] = "registered";
+        jsonbody["id"]     = 231;
+
+        res.status = 200;
+        std::string body = jsonbody.dump();
+        res.set_content(body, "application/json");
+
+        res.status = 200;
+    });
 
     server.listen("0.0.0.0", 39024);
 }
