@@ -6,7 +6,8 @@
 #include <vector>
 
 #include "processmanager.h"
-#include "../../utils/messagequeue.h"
+
+#include "../../utils/common/messagequeue.h"
 #include "artifactmanifest.h"
 #include "sandboxes/sandbox.h"
 #include "deviceinfo.h"

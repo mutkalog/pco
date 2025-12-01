@@ -10,7 +10,7 @@
 #include <sys/wait.h>
 #include <spawn.h>
 #include <unistd.h>
-#include "../../utils/messagequeue.h"
+#include "../../utils/common/messagequeue.h"
 
 #include "artifactmanifest.h"
 

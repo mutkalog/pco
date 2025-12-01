@@ -1,110 +1,51 @@
-#include <httplib.h>
-#include <nlohmann/json.hpp>
-#include <fstream>
-#include <unistd.h>
+#include "http/server.h"
 
-#include <filesystem>
-namespace fs = std::filesystem;
+#include "http/uploadcontroller.h"
+#include "http/registrationcontroller.h"
+#include "http/manifestcontrller.h"
+#include "http/downloadcontroller.h"
+#include "http/reportcontroller.h"
+
+#include "database.h"
+
+#include <vector>
+
 
 int main()
 {
-    using namespace httplib;
-    using json = nlohmann::ordered_json;
+    // Database::instance().connection();
 
-    std::string testdir = std::string(PROJECT_ROOT_DIR) + "/app4";
+    // std::vector<std::unique_ptr<Controller>> ctrls;
+    // ctrls.push_back(std::make_unique<UploadController>());
+    // ctrls.push_back(std::make_unique<ManifestContrller>());
+    // ctrls.push_back(std::make_unique<DownloadController>());
+    // ctrls.push_back(std::make_unique<ReportController>());
+    // ctrls.push_back(std::make_unique<RegistrationController>());
 
-    std::string ca_cert     = fs::path(PROJECT_ROOT_DIR) / "mtls/ca.pem";
-    std::string server_cert = fs::path(PROJECT_ROOT_DIR) / "mtls/server/server.crt";
-    std::string server_key  = fs::path(PROJECT_ROOT_DIR) / "mtls/server/server.key";
+    // Server::instance().setControllers(std::move(ctrls));
+    // Server::instance().setupRoutes();
+    // Server::instance().listen("0.0.0.0", 39024);
+        try
+    {
+        // Database::instance().connection();
 
-    SSLServer server(server_cert.c_str(), server_key.c_str(), ca_cert.c_str());
+        std::vector<std::unique_ptr<Controller>> ctrls;
+        ctrls.push_back(std::make_unique<UploadController>());
+        ctrls.push_back(std::make_unique<ManifestController>());
+        ctrls.push_back(std::make_unique<DownloadController>());
+        ctrls.push_back(std::make_unique<ReportController>());
+        ctrls.push_back(std::make_unique<RegistrationController>());
 
-    server.set_exception_handler(
-    [](const httplib::Request &req, httplib::Response &res, std::exception_ptr ep) {
-        try { std::rethrow_exception(ep); }
-        catch (const std::exception &e) {
-            std::cerr << "Handler exception: " << e.what() << std::endl;
-        }
-        res.status = 500;
-        res.set_content("internal error", "text/plain");
-    });
+        Server::instance().setControllers(std::move(ctrls));
+        Server::instance().setupRoutes();
+        if (Server::instance().listen("0.0.0.0", 39024) == false)
+            throw std::runtime_error("");
 
-    server.Get("/manifest", [&](const Request& req, Response& res) {
-        std::cout << req.method << std::endl;
-        std::cout << req.path << std::endl;
-        std::cout << req.body << std::endl;
-        std::cout << req.get_param_value("id") << std::endl;
-        std::cout << req.get_param_value("type") << std::endl;
-
-        json jsonbody;
-
-        std::ifstream fr(testdir + "/manifest.json", std::ios_base::in | std::ios_base::binary);
-        if (!fr) {
-            throw std::runtime_error("cannot open manifest.json");
-        }
-
-        std::string raw((std::istreambuf_iterator<char>(fr)), std::istreambuf_iterator<char>());
-
-        std::ifstream fs(testdir + "/signature.json");
-        if (!fs) {
-            throw std::runtime_error("cannot open signature.json");
-        }
-
-        std::string signatureInfo((std::istreambuf_iterator<char>(fs)), std::istreambuf_iterator<char>());
-
-        jsonbody["manifest"] = raw;
-        jsonbody["signature"] = signatureInfo;
-
-        res.status = 200;
-        std::string body = jsonbody.dump();
-        res.set_content(body, "application/json");
-    });
-
-
-    server.Get("/download", [&](const Request& req, Response& res) {
-        std::cout << req.method << std::endl;
-        std::cout << req.path << std::endl;
-        std::cout << req.get_param_value("id") << std::endl;
-        std::cout << req.get_param_value("type") << std::endl;
-
-        std::ifstream fArchive(testdir + "/app.tar.gz");
-        if (!fArchive) {
-            throw std::runtime_error("cannot open manifest.json");
-        }
-
-        std::vector<uint8_t> raw((std::istreambuf_iterator<char>(fArchive)), std::istreambuf_iterator<char>());
-
-        res.status = 200;
-        res.set_content(reinterpret_cast<const char*>(raw.data()), raw.size(), "application/gzip");
-    });
-
-
-    server.Post("/report", [&](const Request& req, Response& res) {
-        std::cout << req.method << std::endl;
-        std::cout << req.path << std::endl;
-
-        std::cout << req.body << std::endl;
-
-        res.status = 200;
-    });
-
-    server.Post("/register", [&](const Request& req, Response& res) {
-        std::cout << req.method << std::endl;
-        std::cout << req.path << std::endl;
-
-        std::cout << req.body << std::endl;
-
-        json jsonbody;
-
-        jsonbody["status"] = "registered";
-        jsonbody["id"]     = 231;
-
-        res.status = 200;
-        std::string body = jsonbody.dump();
-        res.set_content(body, "application/json");
-
-        res.status = 200;
-    });
-
-    server.listen("0.0.0.0", 39024);
+        std::cout << "Server started successfully\n";
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << "Fatal error: " << e.what() << "\n";
+        return 1;
+    }
 }

@@ -1,0 +1,26 @@
+{
+  "release": {
+    "version": "1.2.0",
+    "type": "Raspberry Pi 4",
+    "timestamp": "2025-11-12T10:23:00Z",
+    "platform": "linux",
+    "arch": "x86_64"
+  },
+  "files": [
+    {
+      "executable" : true,
+      "path": "/opt/myapp/app",
+      "hash": {
+        "algo": "sha256",
+        "value": "6c6be98c77dac7932057d469a1db274ba0d205668afca019303bc45bf904b8e8"
+      }
+    }
+  ],
+  "requiredLibs": [
+    "/lib/x86_64-linux-gnu/libgcc_s.so.1",
+    "/lib64/ld-linux-x86-64.so.2",
+    "/lib/x86_64-linux-gnu/libm.so.6",
+    "/lib/x86_64-linux-gnu/libc.so.6",
+    "/lib/x86_64-linux-gnu/libstdc++.so.6"
+  ]
+}

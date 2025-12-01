@@ -1,15 +1,15 @@
 
-# set(CMAKE_EXE_LINKER_FLAGS "-static")
 
 find_library(ARCHIVE_LIB archive)
 
+
+# set(CMAKE_EXE_LINKER_FLAGS "-static")
 # set(ARCHIVE_LIB /usr/lib/x86_64-linux-gnu/libarchive.a)
 # include_directories("/home/alexander/Projects/posix-compatable-ota/cpp-httplib")
 
 add_executable(pco-client-ota ota/main.cpp
     ota/statemachine.h ota/statemachine.cpp
     ota/stateexecutors/checkingstateexecutor.h ota/stateexecutors/checkingstateexecutor.cpp
-    ota/archive.h ota/archive.cpp
     ota/artifactmanifest.h  ota/artifactmanifest.cpp
     ota/stateexecutors/stateexecutor.h ota/stateexecutors/stateexecutor.cpp
     ota/stateexecutors/idlestateexecutor.h ota/stateexecutors/idlestateexecutor.cpp
@@ -31,7 +31,7 @@ target_compile_definitions(pco-client-ota PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
 
 target_link_libraries(pco-client-ota PRIVATE
     ${ARCHIVE_LIB}
-    mycrypto
+    common
     z
     bz2
     lzma

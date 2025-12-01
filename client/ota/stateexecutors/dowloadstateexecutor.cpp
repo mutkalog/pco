@@ -1,8 +1,8 @@
 #include "dowloadstateexecutor.h"
 #include "../statemachine.h"
-#include "../archive.h"
 #include "finalizingstateexecutor.h"
 #include "verifyingstateexecutor.h"
+#include "../../../utils/common/archive.h"
 
 #include <filesystem>
 

@@ -43,6 +43,7 @@ void DeviceInfo::loadConfig()
 
     type_                   = devConfig["type"]                        .get<std::string>();
     platform_               = devConfig["platform"]                    .get<std::string>();
+    arch_                   = devConfig["arch"]                        .get<std::string>();
     pollingIntervalMinutes_ = devConfig["updatePollingIntervalMinutes"].get<int>();
     serverUrl_              = devConfig["serverURL"]                   .get<std::string>();
     serverPort_             = devConfig["serverPort"]                  .get<int>();

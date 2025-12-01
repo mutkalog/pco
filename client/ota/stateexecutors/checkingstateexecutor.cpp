@@ -1,5 +1,5 @@
 #include "checkingstateexecutor.h"
-#include "../../../utils/utils.h"
+#include "../../../utils/common/utils.h"
 
 #include "dowloadstateexecutor.h"
 #include "idlestateexecutor.h"
@@ -12,7 +12,14 @@ void CheckingStateExecutor::execute(StateMachine &sm)
 {
     auto& ctx = sm.context;
 
-    std::string queryString = "/manifest?type=" + ctx.devinfo->type() + "&id=" + std::to_string(ctx.devinfo->id());
+    ///@todo доделать проверку релиза -- добавить platform, arch в verificateRelease
+
+    std::string queryString = httplib::encode_uri(
+                                    std::string("/manifest?id=") + std::to_string(ctx.devinfo->id())
+                                      + "&type=" + ctx.devinfo->type()
+                                      + "&platform=" + ctx.devinfo->platform()
+                                      + "&arch=" + ctx.devinfo->arch());
+
     auto res  = ctx.client->Get(queryString);
 
     if (!res) {
@@ -23,6 +30,7 @@ void CheckingStateExecutor::execute(StateMachine &sm)
         std::cerr << "httplib Get failed, openssl err: " << buf << "\n";
     }
 
+    ///@todo обернуть в try catch
     json data = json::parse(res->body);
 
     std::string rawManifest        = data["manifest"].get<std::string>();
