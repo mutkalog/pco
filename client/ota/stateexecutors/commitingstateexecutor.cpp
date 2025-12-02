@@ -26,7 +26,7 @@ void CommitingStateExecutor::execute(StateMachine &sm)
         for (const auto &file : ctx.manifest.files)
         {
             const auto parentpath = fs::path(file.installPath).parent_path();
-            const auto filename = fs::path(file.installPath).filename();
+            const auto filename   = fs::path(file.installPath).filename();
 
             fs::create_directories(parentpath);
             if (fs::exists(file.installPath) == true)

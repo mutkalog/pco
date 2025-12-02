@@ -16,22 +16,44 @@ void CheckingStateExecutor::execute(StateMachine &sm)
 
     std::string queryString = httplib::encode_uri(
                                     std::string("/manifest?id=") + std::to_string(ctx.devinfo->id())
-                                      + "&type=" + ctx.devinfo->type()
-                                      + "&platform=" + ctx.devinfo->platform()
-                                      + "&arch=" + ctx.devinfo->arch());
+                                          + "&type=" + ctx.devinfo->type()
+                                          + "&arch=" + ctx.devinfo->arch())
+                                          + "&platform=" + ctx.devinfo->platform();
 
-    auto res  = ctx.client->Get(queryString);
+    auto res = ctx.client->Get(queryString);
 
-    if (!res) {
-        unsigned long err = ERR_get_error();
-        char buf[256] = {0};
-        if (err)
-            ERR_error_string_n(err, buf, sizeof(buf));
-        std::cerr << "httplib Get failed, openssl err: " << buf << "\n";
+    if (res == nullptr)
+    {
+        std::cout << "Server unavailable" << std::endl;
+        sm.transitTo(&IdleStateExecutor::instance());
+        return;
     }
+    else if (res->status == httplib::OK_200)
+    {
+        try
+        {
+            process(sm, res->body);
+        }
+        catch (const std::exception& ex)
+        {
+            std::cout << ex.what() << std::endl;
+            sm.transitTo(&IdleStateExecutor::instance());
+            return;
+        }
+    }
+    else
+    {
+        std::cout << "Something went wrong. Server retured status: " << res->status << std::endl;
+        sm.transitTo(&IdleStateExecutor::instance());
+        return;
+    }
+}
 
+void CheckingStateExecutor::process(StateMachine &sm, const std::string& responseBody)
+{
     ///@todo обернуть в try catch
-    json data = json::parse(res->body);
+    json data = json::parse(responseBody);
+    auto& ctx = sm.context;
 
     std::string rawManifest        = data["manifest"].get<std::string>();
 
@@ -48,16 +70,7 @@ void CheckingStateExecutor::execute(StateMachine &sm)
         return;
     }
 
-    try
-    {
-        ctx.manifest.loadFromJson(json::parse(rawManifest));
-    }
-    catch (...)
-    {
-        std::cout << "JSON parsing error" << std::endl;
-        sm.transitTo(&IdleStateExecutor::instance());
-        return;
-    }
+    ctx.manifest.loadFromJson(json::parse(rawManifest));
 
     if (verificateRelease(ctx.manifest, ctx.devinfo.get()) == true)
     {
@@ -78,6 +91,7 @@ void CheckingStateExecutor::execute(StateMachine &sm)
     }
 }
 
+///@todo убрать проверку версии и timestamp
 bool CheckingStateExecutor::verificateRelease(const ArtifactManifest &received, const DeviceInfo *current) const
 {
     bool v = compareVersions(received.release.version, current->prevManifest().release.version);
@@ -160,7 +174,7 @@ bool CheckingStateExecutor::compareDeviceType(const std::string &received, const
 
 bool CheckingStateExecutor::terminateProcesses(UpdateContext &ctx)
 {
-    std::cout << "ПРОИСХОДИТ УБИЙСТВО ПРОЦЕССОВ!!!" << std::endl;
+    std::cout << "Killing working processes..." << std::endl;
     ctx.pm->terminateAll(2000);
 
     while (ctx.supervisorMq->empty() == false)

@@ -1,0 +1,7 @@
+{
+  "signature": {
+    "algo": "rsa-sha256",
+    "keyname": "main-signing-key",
+    "value": "V4ufJCG2R2Nt0WCgPyGhYNJI215R9nOCDXLnNMtRsFUEhywL/ADx62fiwACeTvLAcX/8Erhe16c4YozsoAre2MYl8KYgijjPEMuRRDBAKCxayFLOJidcza+qOSIGl5H7nEVy2CqMCLh2F5utPKz8F/5rQ1t3V9NFqGb9ZJKNmzaAjMIosOmFWR7zYe6uYhIWHpdNNonCuDW2H1nS0O+5FUTddJAMlrQzD1k1r7UlU/C2HadCYBlJQYNkH0WSEoRLBLUCez6uZR5bViU4+Nr94yCyPpQnSF4H05/y/EYi+m5GhvMVmAFpgJSrWQKwvKWKWrl46tVEaTeTx/XhnKd5kw=="
+  }
+}

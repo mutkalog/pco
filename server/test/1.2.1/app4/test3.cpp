@@ -3,14 +3,14 @@
 
 int main()
 {
-    std::cout << "Goes into cycle" << std::endl; 
+    std::cout << "APP3: Goes into cycle" << std::endl; 
     while (true)
     {
         sleep(1);
     }
 
 
-    std::cout << "Done!" << std::endl; 
+    std::cout << "APP3: Done!" << std::endl; 
 
 
 }

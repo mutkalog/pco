@@ -3,6 +3,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <archive.h>
+#include <archive_entry.h>
 
 #include <vector>
 #include <string>

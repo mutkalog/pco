@@ -12,6 +12,7 @@ public:
 
 private:
     Database();
+    void ensureTriggerExists();
     std::shared_ptr<pqxx::connection> conn_;
 };
 

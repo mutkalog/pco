@@ -3,17 +3,15 @@
 #include "database.h"
 #include <iostream>
 #include <nlohmann/json.hpp>
-#include <filesystem>
 
 
 using json = nlohmann::ordered_json;
-namespace fs = std::filesystem;
 
 namespace {
-    const fs::path BUFFER_DIR = "/tmp/pco-buffer";
+    const fs::path BUFFER_DIR  = "/tmp/pco-buffer";
     const fs::path STORAGE_DIR = "/opt/pco/storage";
 
-    auto toPgArray = [](const std::vector<std::string> &v) {
+    auto toPgArray = [](const std::vector<fs::path> &v) {
         std::string res = "{";
         for (size_t i = 0; i < v.size(); ++i) {
 
@@ -40,9 +38,26 @@ namespace {
 } // namespace
 
 
+void UploadService::upload(const std::string &manifest, const std::string &archive)
+{
+    parseManifest(manifest);
+    parseFiles(archive);
+    commit();
+}
+
 void UploadService::parseManifest(const std::string& raw)
 {
-    json        data         = json::parse(raw);
+    if (raw.empty())
+        throw std::runtime_error("Empty manifest");
+
+    json data = json::parse(raw);
+
+    if (data.contains("manifest") == false || data["manifest"].is_string() == false)
+        throw std::runtime_error("Manifest field is missing or not a string");
+
+    if (data.contains("signature") == false || data["signature"].is_string() == false)
+        throw std::runtime_error("Signature field is missing or not a string");
+
     std::string manifestRaw  = data["manifest"];
     std::string signatureRaw = data["signature"];
 
@@ -54,8 +69,6 @@ void UploadService::parseManifest(const std::string& raw)
     entry_.type      = manifest["release"]["type"];
     entry_.platform  = manifest["release"]["platform"];
     entry_.arch      = manifest["release"]["arch"];
-
-    manifestParsed = true;
 }
 
 void UploadService::parseFiles(const std::string &raw)
@@ -80,32 +93,26 @@ void UploadService::parseFiles(const std::string &raw)
     {
         if (entry.is_regular_file())
         {
-            std::cout << "FILE: " << entry.path().string() << "\n";
             fs::path serverPath = STORAGE_DIR / entry_.type / entry_.arch / entry_.platform / entry_.version;
 
             if (fs::create_directories(serverPath) == false && fs::exists(serverPath) == false)
                 throw std::runtime_error("Cannot create storage dir");
 
-            fs::copy(entry.path(), serverPath);
-
-            entry_.paths.push_back(serverPath.string());
+            entry_.bufferPathToStoragePath.push_back({entry.path(), serverPath});
+            entry_.storagePaths.push_back(serverPath / entry.path().filename());
         }
     }
-
-    filesParsed = entry_.paths.empty() == false;
-
-    fs::remove_all(BUFFER_DIR);
 }
 
 void UploadService::commit()
 {
-    if (filesParsed == false || manifestParsed == false)
+    if (entry_.storagePaths.empty() == true)
     {
         throw std::runtime_error("Cannot update");
     }
 
     pqxx::work txn(*Database::instance().connection());
-    std::string paths = toPgArray(entry_.paths);
+    std::string paths = toPgArray(entry_.storagePaths);
     pqxx::params params;
     params.append(entry_.manifest);
     params.append(entry_.signature);
@@ -120,5 +127,37 @@ void UploadService::commit()
         "VALUES ($1, $2, $3, $4, $5, $6, $7) "
         "RETURNING id;", params);
 
+    auto newId = res[0]["id"].as<uint64_t>();
+
+    pqxx::params updateParams;
+    updateParams.append(newId);
+    updateParams.append(entry_.type);
+    updateParams.append(entry_.platform);
+    updateParams.append(entry_.arch);
+
+    txn.exec(
+        "UPDATE releases "
+        "SET active = false "
+        "WHERE device_type = $2 "
+        "  AND platform = $3 "
+        "  AND arch = $4 "
+        "  AND id <> $1;", updateParams);
+
+    const auto& map = entry_.bufferPathToStoragePath;
+    for (size_t i = 0; i != map.size(); ++i)
+    {
+        fs::copy(map[i].first, map[i].second);
+        if (fs::exists(entry_.storagePaths[i]) == false)
+            throw std::runtime_error("File was not copied");
+
+        ///@todo убрать
+        std::cout << entry_.storagePaths[i] << std::endl;
+    }
+    std::cout << "Files successfuly transfered" << std::endl;
+
+    fs::remove_all(BUFFER_DIR);
     txn.commit();
+
+    cleanupEntry();
 }
+

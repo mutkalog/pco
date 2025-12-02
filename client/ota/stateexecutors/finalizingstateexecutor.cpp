@@ -11,7 +11,6 @@ void FinalizingStateExecutor::execute(StateMachine &sm)
     try
     {
         totalCleanup(ctx);
-
         std::cout << "Cleanup was successfully committed" << std::endl;
     }
     catch (const std::exception& ex)
@@ -27,15 +26,18 @@ void FinalizingStateExecutor::execute(StateMachine &sm)
     json results;
     auto& devinfo = sm.context.devinfo;
 
-    results["device"]  = devinfo->type();
-    results["status"]  = ctx.finalDecision == true ? "SUCCESS" : "FAULT";
+    results["type"]     = devinfo->type();
+    results["arch"]     = devinfo->arch();
+    results["platform"] = devinfo->platform();
+    results["id"]       = devinfo->id();
+    results["status"]   = ctx.finalDecision == true ? "SUCCESS" : "FAULT";
 
     results["error"] = {
         { "code",    ctx.reportMessage.first  },
         { "message", ctx.reportMessage.second },
     };
 
-    results["current_version"] = devinfo->prevManifest().release.version;
+    results["current_version"] = ctx.manifest.release.version;
 
     std::string body = results.dump();
 

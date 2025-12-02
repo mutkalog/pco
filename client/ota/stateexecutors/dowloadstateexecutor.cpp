@@ -11,8 +11,12 @@ namespace fs = std::filesystem;
 void DowloadStateExecutor::execute(StateMachine &sm)
 {
     auto& ctx = sm.context;
+    std::string queryString = httplib::encode_uri(
+                                std::string("/download?id=") + std::to_string(ctx.devinfo->id())
+                                  + "&type=" + ctx.devinfo->type()
+                                  + "&arch=" + ctx.devinfo->arch())
+                                  + "&platform=" + ctx.devinfo->platform();
 
-    std::string queryString = std::string("/download?type=") + ctx.devinfo->type() + "&id=" + std::to_string(ctx.devinfo->id());
     auto res = ctx.client->Get(queryString);
     std::vector<uint8_t> data(res->body.size());
     std::memcpy(data.data(), res->body.data(), res->body.size());

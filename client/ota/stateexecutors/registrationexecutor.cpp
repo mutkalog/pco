@@ -63,9 +63,10 @@ void RegistrationExecutor::registerDevice(UpdateContext &ctx)
         throw std::runtime_error("Server unavailable");
     }
 
-    if (res->status == 200)
+    if (res->status == httplib::OK_200)
     {
         json status = json::parse(res->body);
+
         if (status["status"] == "registered")
         {
             devinfo->saveId(status["id"]);
@@ -81,6 +82,12 @@ void RegistrationExecutor::registerDevice(UpdateContext &ctx)
         {
             throw std::runtime_error("Unknown response");
         }
+    }
+    else if (res->status == httplib::BadRequest_400)
+    {
+        std::cout << res->body << std::endl;
+        std::cout << "Ill-formed devconfig.json file. Aborting." << std::endl;
+        exit(EXIT_FAILURE);
     }
     else
     {

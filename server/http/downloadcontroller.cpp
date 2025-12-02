@@ -1,44 +1,33 @@
 #include "downloadcontroller.h"
 
-// #include <filesystem>
-#include <fstream>
-#include <nlohmann/json.hpp>
-#include "../../utils/common/archive.h"
-// namespace fs = std::filesystem;
-using json = nlohmann::ordered_json;
-
-namespace {
-    std::string testdir = std::string(PROJECT_ROOT_DIR) + "/app4";
-} // namespace
-
-
 
 void DownloadController::registerRoute(httplib::Server &serv)
 {
     serv.Get("/download", [&](const httplib::Request &req, httplib::Response& res) {
-        std::cout << req.method << std::endl;
-        std::cout << req.path << std::endl;
-        std::cout << req.get_param_value("id") << std::endl;
-        std::cout << req.get_param_value("type") << std::endl;
 
-        ///@todo получение вектора path из бд
-        std::vector<std::string> paths{
-            "/opt/pco/storage/Raspberry Pi 4/x86_64/linux/1.2.0/app2",
-            "/opt/pco/storage/Raspberry Pi 4/x86_64/linux/1.2.0/app3",
-        };
+        uint32_t    devId    = std::stoul(req.get_param_value("id"), nullptr, 10);
+        std::string type     = req.get_param_value("type");
+        std::string arch     = req.get_param_value("arch");
+        std::string platform = req.get_param_value("platform");
 
-        std::vector<uint8_t> output;
+        std::cout << req.method << " on " << req.path << " from " << arch << " "
+                  << type << " on " << platform << std::endl;
 
-        std::cout << create_archive_from_paths(paths, output) << std::endl;
-
-        // std::ifstream fArchive(testdir + "/app.tar.gz");
-        // if (!fArchive) {
-        //     throw std::runtime_error("cannot open manifest.json");
-        // }
-
-        // std::vector<uint8_t> raw((std::istreambuf_iterator<char>(fArchive)), std::istreambuf_iterator<char>());
-
-        res.status = 200;
-        res.set_content(reinterpret_cast<const char*>(output.data()), output.size(), "application/gzip");
+        try
+        {
+            std::vector<uint8_t> output = service_.getArchive(devId, type, platform, arch);
+            res.status = httplib::BadRequest_400;
+            res.set_content(reinterpret_cast<const char*>(output.data()), output.size(), "application/gzip");
+        }
+        catch (const std::system_error &ex)
+        {
+            throw;
+        }
+        catch (const std::runtime_error &ex)
+        {
+            std::cout << ex.what() << std::endl;
+            res.status = httplib::BadRequest_400;
+            res.set_content("Release not found", "plain/text");
+        }
     });
 }
