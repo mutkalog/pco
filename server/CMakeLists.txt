@@ -10,7 +10,10 @@ add_executable(pco-server main.cpp
     service/manifestservice.h service/manifestservice.cpp
     service/downloadservice.h service/downloadservice.cpp
     service/registrationservice.h service/registrationservice.cpp
-    service/reportservice.h service/reportservice.cpp)
+    service/reportservice.h service/reportservice.cpp
+    servercontext.h servercontext.cpp
+    updatesupervisor.h updatesupervisor.cpp
+    rolloutsupervisor.h rolloutsupervisor.cpp)
 
 # include_directories("/home/alexander/Projects/posix-compatable-ota/cpp-httplib")
 # find_library(HTTPLIB cpp-httplib REQUIRED)

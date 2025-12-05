@@ -3,47 +3,67 @@
 
 namespace {
 
-const std::string RELEASES_TB_CREATION_SQL = "CREATE TABLE IF NOT EXISTS releases (\n"
-                                                    "id            BIGSERIAL PRIMARY KEY,\n"
-                                                    "manifest_raw  TEXT NOT NULL,\n"
-                                                    "signature_raw TEXT NOT NULL,\n"
-                                                    "version       TEXT NOT NULL,\n"
-                                                    "device_type   TEXT NOT NULL,\n"
-                                                    "platform      TEXT NOT NULL,\n"
-                                                    "arch          TEXT NOT NULL,\n"
-                                                    "file_paths    TEXT[] NOT NULL,\n"
-                                                    "update_errors INTEGER NOT NULL DEFAULT 0,\n"
-                                                    "created_at    TIMESTAMPTZ DEFAULT now(),\n"
-                                                    "active        BOOLEAN DEFAULT true\n"
-                                                    ");\n";
+const std::string_view RELEASES_TB_CREATION_SQL =
+    "CREATE TABLE IF NOT EXISTS releases (\n"
+    "id            BIGSERIAL PRIMARY KEY,\n"
+    "manifest_raw  TEXT NOT NULL,\n"
+    "signature_raw TEXT NOT NULL,\n"
+    "version       TEXT NOT NULL,\n"
+    "device_type   TEXT NOT NULL,\n"
+    "platform      TEXT NOT NULL,\n"
+    "arch          TEXT NOT NULL,\n"
+    "file_paths    TEXT[] NOT NULL,\n"
+    "update_errors INTEGER NOT NULL DEFAULT 0,\n"
+    "created_at    TIMESTAMPTZ DEFAULT now(),\n"
+    "active        BOOLEAN DEFAULT true,\n"
+    "is_canary     BOOLEAN DEFAULT false,\n"
+    "canary_percent INT DEFAULT 0\n"
+    ");\n";
 
-const std::string DEVICES_TB_CREATION_SQL = "CREATE TABLE IF NOT EXISTS devices (\n"
-                                                    "id            BIGSERIAL PRIMARY KEY,\n"
-                                                    "device_type   TEXT NOT NULL,\n"
-                                                    "platform      TEXT NOT NULL,\n"
-                                                    "arch          TEXT NOT NULL,\n"
-                                                    "created_at    TIMESTAMP WITH TIME ZONE DEFAULT now(),\n"
-                                                    "last_seen     TIMESTAMP WITH TIME ZONE\n"
-                                                    ");\n";
+const std::string_view DEVICES_TB_CREATION_SQL =
+    "CREATE TABLE IF NOT EXISTS devices (\n"
+    "id            BIGSERIAL PRIMARY KEY,\n"
+    "device_type   TEXT NOT NULL,\n"
+    "platform      TEXT NOT NULL,\n"
+    "arch          TEXT NOT NULL,\n"
+    "created_at    TIMESTAMP WITH TIME ZONE DEFAULT now(),\n"
+    "last_seen     TIMESTAMP WITH TIME ZONE\n"
+    ");\n";
 
-const std::string REPORTS_TB_CREATION_SQL = "CREATE TABLE IF NOT EXISTS  reports (\n"
-                                                    "id BIGSERIAL PRIMARY KEY,\n"
-                                                    "device_id BIGSERIAL REFERENCES devices(id) ON DELETE SET NULL,\n"
-                                                    "release_id BIGSERIAL REFERENCES releases(id),\n"
-                                                    "ts TIMESTAMP WITH TIME ZONE DEFAULT now(),\n"
-                                                    "status INT,\n"
-                                                    "body JSONB\n"
-                                                    ");\n";
+const std::string_view RELEASE_ASSIGNMENTS_TB_CREATION_SQL =
+    "CREATE TABLE IF NOT EXISTS release_assignments (\n"
+    "release_id BIGINT REFERENCES releases(id),\n"
+    "device_id  BIGINT REFERENCES devices(id),\n"
+    "status     TEXT DEFAULT 'pending', -- pending, success, failed\n"
+    "PRIMARY KEY (release_id, device_id)\n"
+    ");\n";
 
-const std::string RELEASES_TB_INDEX_SQL   = "CREATE UNIQUE INDEX IF NOT EXISTS releases_unique_idx\n"
-                                                "ON releases(device_type, platform, arch, version);\n";
+const std::string_view REPORTS_TB_CREATION_SQL =
+    "CREATE TABLE IF NOT EXISTS  reports (\n"
+    "id BIGSERIAL PRIMARY KEY,\n"
+    "device_id BIGSERIAL REFERENCES devices(id) ON DELETE SET NULL,\n"
+    "release_id BIGSERIAL REFERENCES releases(id),\n"
+    "ts TIMESTAMP WITH TIME ZONE DEFAULT now(),\n"
+    "status INT,\n"
+    "body JSONB\n"
+    ");\n";
 
-const std::vector<std::string> sqls{
+const std::string_view RELEASES_TB_INDEX_SQL =
+    "CREATE UNIQUE INDEX IF NOT EXISTS releases_unique_idx\n"
+    "ON releases(device_type, platform, arch, version);\n";
+
+const std::vector<std::string_view> sqls{
                                         RELEASES_TB_CREATION_SQL,
                                         DEVICES_TB_CREATION_SQL,
+                                        RELEASE_ASSIGNMENTS_TB_CREATION_SQL,
                                         REPORTS_TB_CREATION_SQL,
                                         RELEASES_TB_INDEX_SQL
                                    };
+}
+
+std::unique_ptr<pqxx::connection> Database::getConnection()
+{
+    return std::make_unique<pqxx::connection>("dbname=pco user=postgres password=truet host=127.0.0.1 port=5432");
 }
 
 Database::Database()
@@ -65,18 +85,17 @@ Database::Database()
             sysBaseConn.close();
         }
 
-
-        conn_ = std::make_shared<pqxx::connection>("dbname=pco user=postgres password=truet host=127.0.0.1 port=5432");
-        pqxx::work txn(*conn_);
+        auto pcoDBConn = getConnection();
+        pqxx::work txn(*pcoDBConn);
 
         for (const auto& sql : sqls)
         {
-            pqxx::result res = txn.exec(sql.c_str());
+            pqxx::result res = txn.exec(sql.data());
         }
 
         txn.commit();
 
-        ensureTriggerExists();
+        ensureTriggerExists(pcoDBConn.get());
     }
     catch (const std::exception& ex)
     {
@@ -86,7 +105,7 @@ Database::Database()
     }
 }
 
-void Database::ensureTriggerExists()
+void Database::ensureTriggerExists(pqxx::connection* conn)
 {
     const char* sql = R"SQL(
         CREATE OR REPLACE FUNCTION inc_update_errors_and_revert()
@@ -137,7 +156,7 @@ void Database::ensureTriggerExists()
         $$;
     )SQL";
 
-    pqxx::work txn(*conn_);
+    pqxx::work txn(*conn);
     txn.exec(sql);
     txn.commit();
 }

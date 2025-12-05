@@ -4,19 +4,19 @@
 #include "../statemachine.h"
 #include "stateexecutor.h"
 
-class EnvironmentBuildingStateExecutor final : public StateExecutor
+class PreInstallScriptStateExecutor final : public StateExecutor
 {
 public:
-    static EnvironmentBuildingStateExecutor& instance();
+    static PreInstallScriptStateExecutor& instance();
     virtual void execute(StateMachine& sm) override;
 
 public:
-    EnvironmentBuildingStateExecutor(enum StateId id) : StateExecutor(id) {}
+    PreInstallScriptStateExecutor(enum StateId id) : StateExecutor(id) {}
 };
 
-inline EnvironmentBuildingStateExecutor &EnvironmentBuildingStateExecutor::instance()
+inline PreInstallScriptStateExecutor &PreInstallScriptStateExecutor::instance()
 {
-    static EnvironmentBuildingStateExecutor inst(BUILDING_ENVIRONMENT);
+    static PreInstallScriptStateExecutor inst(PREPARING);
     return inst;
 }
 

@@ -12,7 +12,7 @@ uint64_t RegistrationService::registerDevice(const std::string &devType, const s
     if (devType.empty() || platform.empty() || arch.empty())
         throw std::runtime_error("Wrong parameters");
 
-    pqxx::work txn(*Database::instance().connection());
+    pqxx::work txn(*conn_);
     pqxx::params params;
     params.append(devType);
     params.append(platform);

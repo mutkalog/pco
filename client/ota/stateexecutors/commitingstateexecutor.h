@@ -15,7 +15,7 @@ private:
 
 inline CommitingStateExecutor &CommitingStateExecutor::instance()
 {
-    static CommitingStateExecutor inst(COMMITING);
+    static CommitingStateExecutor inst(COMMITTING);
     return inst;
 }
 

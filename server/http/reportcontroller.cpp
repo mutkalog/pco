@@ -19,7 +19,7 @@ void ReportController::registerRoute(httplib::Server &serv)
         std::cout << req.method << " on " << req.path << " from " << arch << " "
                   << type << " on " << platform << std::endl;
 
-        service_.parseReport(requestBody);
+        service_.parseReport(sc_, requestBody);
 
         res.status = httplib::OK_200;
     });

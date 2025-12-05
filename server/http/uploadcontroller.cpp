@@ -13,6 +13,12 @@ void UploadController::registerRoute(httplib::Server &serv)
             res.set_content("Expected multipart/form-data", "text/plain");
             return;
         }
+
+        bool        canary            = req.get_param_value("canary") == "true";
+        std::string percentage        = req.get_param_value("percentage");
+        auto        canaryPercentage  = (canary && !percentage.empty())
+                                        ? std::make_optional(std::stoi(percentage))
+                                        : std::nullopt;
         std::string rawManifest;
         std::string archive;
 
@@ -32,7 +38,7 @@ void UploadController::registerRoute(httplib::Server &serv)
 
         try
         {
-            service_.upload(rawManifest, archive);
+            service_.upload(sc_, canaryPercentage, rawManifest, archive);
             res.status = httplib::OK_200;
             res.set_content("Success", "text/plain");
         }

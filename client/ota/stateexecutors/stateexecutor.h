@@ -18,9 +18,9 @@ public:
         CHECKING,
         DOWNLOADING,
         VERIFYING,
-        BUILDING_ENVIRONMENT,
-        TESTING,
-        COMMITING,
+        PREPARING,
+        PRE_COMMITTING,
+        COMMITTING,
         FINALIZING,
         TOTAL
     };

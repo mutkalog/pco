@@ -15,7 +15,7 @@ private:
 
 inline TestingStateExecutor &TestingStateExecutor::instance()
 {
-    static TestingStateExecutor inst(TESTING);
+    static TestingStateExecutor inst(PRE_COMMITTING);
     return inst;
 }
 

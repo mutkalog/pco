@@ -8,8 +8,9 @@
 class RegistrationController final : public Controller
 {
 public:
-    RegistrationController() : Controller() {}
+    RegistrationController(ServerContext* sc) : Controller(sc) {}
     virtual void registerRoute(httplib::Server& serv) override;
+
 private:
     RegistrationService service_;
 };

@@ -4,7 +4,10 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <optional>
 
+#include "database.h"
+#include "servercontext.h"
 
 
 namespace fs = std::filesystem;
@@ -24,15 +27,17 @@ struct ReleasesTableEntry
 class UploadService
 {
 public:
-    UploadService() = default;
-    void upload(const std::string& manifest, const std::string& archive);
+    UploadService() : conn_(Database::instance().getConnection()) {}
+    void upload(ServerContext *sc, std::optional<int> canaryPercentage, const std::string& manifest, const std::string& archive);
 
 private:
     ReleasesTableEntry entry_;
     void parseManifest(const std::string &raw);
     void parseFiles(const std::string &raw);
-    void commit();
+    void commit(ServerContext *sc, std::optional<int> canaryPercentage);
     void cleanupEntry();
+
+    std::unique_ptr<pqxx::connection> conn_;
 };
 
 inline void UploadService::cleanupEntry() {

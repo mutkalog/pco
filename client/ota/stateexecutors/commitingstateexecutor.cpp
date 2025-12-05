@@ -28,6 +28,10 @@ void CommitingStateExecutor::execute(StateMachine &sm)
             const auto parentpath = fs::path(file.installPath).parent_path();
             const auto filename   = fs::path(file.installPath).filename();
 
+            if (parentpath.empty() == true)
+                continue;
+
+            ///@todo разобраться с установкой файлов
             fs::create_directories(parentpath);
             if (fs::exists(file.installPath) == true)
             {
@@ -63,17 +67,17 @@ void CommitingStateExecutor::execute(StateMachine &sm)
                 }
             }
 
-            if (fs::copy_file(ctx.testingDir / filename, file.installPath) == false)
+            if (fs::copy_file(ctx.stagingDir / filename, file.installPath) == false)
             {
                 onError(std::string("cannot copy ") +
-                        (ctx.testingDir / filename).string());
+                        (ctx.stagingDir / filename).string());
                 return;
             }
 
-            if (fs::remove(ctx.testingDir / filename) == false)
+            if (fs::remove(ctx.stagingDir / filename) == false)
             {
                 onError(std::string("cannot remove ") +
-                        (ctx.testingDir / filename).string());
+                        (ctx.stagingDir / filename).string());
                 return;
             }
         }

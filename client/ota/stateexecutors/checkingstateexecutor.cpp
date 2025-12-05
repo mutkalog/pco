@@ -74,15 +74,15 @@ void CheckingStateExecutor::process(StateMachine &sm, const std::string& respons
 
     if (verificateRelease(ctx.manifest, ctx.devinfo.get()) == true)
     {
-        if (terminateProcesses(ctx))
+        // if (terminateProcesses(ctx))
         {
             sm.transitTo(&DowloadStateExecutor::instance());
         }
-        else
-        {
-            std::cout << "Cannot kill processes" << std::endl;
-            sm.transitTo(&IdleStateExecutor::instance());
-        }
+        // else
+        // {
+        //     std::cout << "Cannot kill processes" << std::endl;
+        //     sm.transitTo(&IdleStateExecutor::instance());
+        // }
     }
     else
     {
@@ -172,17 +172,17 @@ bool CheckingStateExecutor::compareDeviceType(const std::string &received, const
     return received == current;
 }
 
-bool CheckingStateExecutor::terminateProcesses(UpdateContext &ctx)
-{
-    std::cout << "Killing working processes..." << std::endl;
-    ctx.pm->terminateAll(2000);
+// bool CheckingStateExecutor::terminateProcesses(UpdateContext &ctx)
+// {
+//     std::cout << "Killing working processes..." << std::endl;
+//     ctx.pm->terminateAll(2000);
 
-    while (ctx.supervisorMq->empty() == false)
-    {
-        std::cout << "Queue is not empty!" << std::endl;
-        auto infoOpt = ctx.supervisorMq->pop();
-    }
+//     while (ctx.supervisorMq->empty() == false)
+//     {
+//         std::cout << "Queue is not empty!" << std::endl;
+//         auto infoOpt = ctx.supervisorMq->pop();
+//     }
 
-    return ctx.pm->listChildren().empty() == true;
-}
+//     return ctx.pm->listChildren().empty() == true;
+// }
 

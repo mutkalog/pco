@@ -8,7 +8,7 @@
 class DownloadController final : public Controller
 {
 public:
-    DownloadController() : Controller() {}
+    DownloadController(ServerContext* sc) : Controller(sc) {}
     virtual void registerRoute(httplib::Server& serv) override;
 
 private:

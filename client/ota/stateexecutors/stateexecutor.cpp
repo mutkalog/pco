@@ -5,15 +5,15 @@
 std::unordered_map<StateExecutor::StateId, std::string>
     StateExecutor::idToNameMap_ = [](){
         std::unordered_map<StateExecutor::StateId, std::string> map = {
-            { REGISTRATION,         "REGISTRATION"         },
-            { IDLE,                 "IDLE"                 },
-            { CHECKING,             "CHECKING"             },
-            { DOWNLOADING,          "DOWNLOADING"          },
-            { VERIFYING,            "VERIFYING"            },
-            { BUILDING_ENVIRONMENT, "BUILDING_ENVIRONMENT" },
-            { TESTING,              "TESTING"              },
-            { COMMITING,            "COMMITING"            },
-            { FINALIZING,           "FINALIZING"           }
+            { REGISTRATION,   "REGISTRATION"   },
+            { IDLE,           "IDLE"           },
+            { CHECKING,       "CHECKING"       },
+            { DOWNLOADING,    "DOWNLOADING"    },
+            { VERIFYING,      "VERIFYING"      },
+            { PREPARING,      "PREPARING"      },
+            { PRE_COMMITTING, "PRE_COMMITTING" },
+            { COMMITTING,     "COMMITING"      },
+            { FINALIZING,     "FINALIZING"     }
         };
 
         assert(map.size() == StateId::TOTAL);

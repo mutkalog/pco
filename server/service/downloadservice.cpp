@@ -1,12 +1,14 @@
 #include "downloadservice.h"
 #include "../../utils/common/archive.h"
 #include "database.h"
+#include <iostream>
+
 
 std::vector<uint8_t>
-DownloadService::getArchive(uint32_t devId,
-                             const std::string &devType,
-                             const std::string &platform,
-                             const std::string &arch)
+DownloadService::getArchive(ServerContext *sc, uint32_t devId,
+                            const std::string &devType,
+                            const std::string &platform,
+                            const std::string &arch)
 {
     pqxx::params prms;
     prms.append(devId);
@@ -14,10 +16,10 @@ DownloadService::getArchive(uint32_t devId,
     prms.append(platform);
     prms.append(arch);
 
-    pqxx::work txn(*Database::instance().connection());
+    pqxx::work txn(*conn_);
 
     pqxx::result res = txn.exec(
-        "SELECT file_paths "
+        "SELECT r.file_paths, r.id "
         "FROM releases r "
         "JOIN devices d ON d.id = $1 "
             "AND d.device_type = r.device_type "
@@ -42,8 +44,9 @@ DownloadService::getArchive(uint32_t devId,
 
     std::vector<std::string> paths{};
 
-    const pqxx::row& row = res[0];
-    std::string      raw = row["file_paths"].c_str();
+    const pqxx::row& row       = res[0];
+    std::string      raw       = row["file_paths"].c_str();
+    uint64_t         releaseId = row["id"].as<uint64_t>();
 
     pqxx::array_parser parser(raw);
 
@@ -66,6 +69,17 @@ DownloadService::getArchive(uint32_t devId,
     std::vector<uint8_t> archive;
     if (create_archive_from_paths(paths, archive) != ARCHIVE_OK)
         throw std::runtime_error("Cannot compress binaries");
+
+    {
+        auto& staging = sc->data->staging;
+        std::lock_guard<std::mutex> lg(staging.updates.mtx);
+        static_cast<void>(lg);
+        UpdateInfo info = {releaseId,
+                           std::chrono::steady_clock::now() + sc->data->updateTimeoutSeconds};
+
+        staging.updates.devToReleaseMap.insert({devId, info});
+        std::cout << "data ptr in controller = " << sc->data.get() << std::endl;
+    }
 
     return archive;
 }

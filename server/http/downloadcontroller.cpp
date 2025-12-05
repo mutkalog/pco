@@ -15,8 +15,8 @@ void DownloadController::registerRoute(httplib::Server &serv)
 
         try
         {
-            std::vector<uint8_t> output = service_.getArchive(devId, type, platform, arch);
-            res.status = httplib::BadRequest_400;
+            std::vector<uint8_t> output = service_.getArchive(sc_, devId, type, platform, arch);
+            res.status = httplib::OK_200;
             res.set_content(reinterpret_cast<const char*>(output.data()), output.size(), "application/gzip");
         }
         catch (const std::system_error &ex)

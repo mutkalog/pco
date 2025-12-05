@@ -25,7 +25,8 @@ add_executable(pco-client-ota ota/main.cpp
     ota/updatecontext.h ota/updatecontext.cpp
     ota/processmanager.h ota/processmanager.cpp
     ota/stateexecutors/finalizingstateexecutor.h ota/stateexecutors/finalizingstateexecutor.cpp
-    ota/stateexecutors/registrationexecutor.h ota/stateexecutors/registrationexecutor.cpp)
+    ota/stateexecutors/registrationexecutor.h ota/stateexecutors/registrationexecutor.cpp
+    ota/stateexecutors/installingstateexecutor.h ota/stateexecutors/installingstateexecutor.cpp)
 
 target_compile_definitions(pco-client-ota PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
 

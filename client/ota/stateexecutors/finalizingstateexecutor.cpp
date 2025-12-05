@@ -23,6 +23,9 @@ void FinalizingStateExecutor::execute(StateMachine &sm)
         rebootRequired           = true;
     }
 
+    // /// @todo убрать
+    // exit(EXIT_SUCCESS);
+
     json results;
     auto& devinfo = sm.context.devinfo;
 
@@ -64,31 +67,19 @@ void FinalizingStateExecutor::execute(StateMachine &sm)
     if (rebootRequired == true)
     {
         std::cout << "REBOOT REBOOT REBOOT" << std::endl;
-        std::cout << "REBOOT REBOOT REBOOT" << std::endl;
         exit(111);
         // std::system("shutdown -r now");
     }
 
     sm.instance().transitTo(&IdleStateExecutor::instance());
+    exit(EXIT_SUCCESS);
 }
 
 void FinalizingStateExecutor::totalCleanup(UpdateContext &ctx)
 {
-    if (ctx.busyResources.sandboxInspector == 1)
-    {
-        ctx.sbi->cleanup(ctx);
-        ctx.busyResources.sandboxInspector = 0;
-    }
-
-    if (ctx.busyResources.sandbox == 1)
-    {
-        ctx.sb->cleanup(ctx);
-        ctx.busyResources.sandbox = 0;
-    }
-
     if (ctx.busyResources.testingDirCreated == 1)
     {
-        fs::remove_all(ctx.testingDir);
+        fs::remove_all(ctx.stagingDir);
         ctx.busyResources.testingDirCreated = 0;
     }
 

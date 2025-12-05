@@ -37,12 +37,13 @@ namespace {
 
 } // namespace
 
-
-void UploadService::upload(const std::string &manifest, const std::string &archive)
+void UploadService::upload(ServerContext* sc, std::optional<int> canaryPercentage,
+                           const std::string &manifest,
+                           const std::string &archive)
 {
-    parseManifest(manifest);
-    parseFiles(archive);
-    commit();
+        parseManifest(manifest);
+        parseFiles(archive);
+        commit(sc, canaryPercentage);
 }
 
 void UploadService::parseManifest(const std::string& raw)
@@ -104,14 +105,15 @@ void UploadService::parseFiles(const std::string &raw)
     }
 }
 
-void UploadService::commit()
+void UploadService::commit(ServerContext* sc, std::optional<int> canaryPercentage)
 {
     if (entry_.storagePaths.empty() == true)
     {
         throw std::runtime_error("Cannot update");
     }
 
-    pqxx::work txn(*Database::instance().connection());
+    pqxx::work txn(*conn_);
+
     std::string paths = toPgArray(entry_.storagePaths);
     pqxx::params params;
     params.append(entry_.manifest);
@@ -121,27 +123,56 @@ void UploadService::commit()
     params.append(entry_.platform);
     params.append(entry_.arch);
     params.append(paths);
+    params.append(canaryPercentage.has_value());
+    params.append(canaryPercentage.has_value() == true ? *canaryPercentage : 0);
 
     pqxx::result res = txn.exec(
-        "INSERT INTO releases (manifest_raw, signature_raw, version, device_type, platform, arch, file_paths) "
-        "VALUES ($1, $2, $3, $4, $5, $6, $7) "
+        "INSERT INTO releases (manifest_raw, signature_raw, version, device_type, platform, arch, file_paths, is_canary, canary_percent) "
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) "
         "RETURNING id;", params);
+
+    if (res.empty() == true)
+        throw std::runtime_error("Empty result on INSERT INTO releases");
 
     auto newId = res[0]["id"].as<uint64_t>();
 
-    pqxx::params updateParams;
-    updateParams.append(newId);
-    updateParams.append(entry_.type);
-    updateParams.append(entry_.platform);
-    updateParams.append(entry_.arch);
+    // if (canaryPercentage.has_value() == true)
+    // {
+        auto& rollouts = sc->data->staging.rollouts;
 
-    txn.exec(
-        "UPDATE releases "
-        "SET active = false "
-        "WHERE device_type = $2 "
-        "  AND platform = $3 "
-        "  AND arch = $4 "
-        "  AND id <> $1;", updateParams);
+        std::lock_guard<std::mutex> lg(rollouts.mtx);
+        static_cast<void>(lg);
+
+        RolloutInfo ri{
+            entry_.type,
+            entry_.platform,
+            entry_.arch,
+            canaryPercentage.has_value() == true,
+            canaryPercentage.has_value() == true ? *canaryPercentage : 0,
+            canaryPercentage.has_value() == true ? *canaryPercentage : 0,
+        };
+
+        rollouts.releaseToInfoMap.insert({newId, std::move(ri)});
+        rollouts.cv.notify_one();
+    // }
+    // else
+    // {
+    //     pqxx::params updateParams;
+    //     updateParams.append(newId);
+    //     updateParams.append(entry_.type);
+    //     updateParams.append(entry_.platform);
+    //     updateParams.append(entry_.arch);
+
+    //     txn.exec(
+    //         "UPDATE releases "
+    //         "SET active = false "
+    //         "WHERE device_type = $2 "
+    //         "  AND platform = $3 "
+    //         "  AND arch = $4 "
+    //         "  AND id <> $1;", updateParams);
+
+    // }
+
 
     const auto& map = entry_.bufferPathToStoragePath;
     for (size_t i = 0; i != map.size(); ++i)

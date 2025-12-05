@@ -1,28 +1,21 @@
 #include "updatecontext.h"
 #include "deviceinfo.h"
 
-#if defined(__linux__)
-#include "sandboxes/linuxsandbox.h"
-#include "sandboxes/linuxsandboxinspecor.h"
-#endif
+namespace {
+    const fs::path PCO_STAGING_DIR = "/tmp/pco/staging";
+}
 
 
 UpdateContext::UpdateContext()
     : manifest{}
-    , testingDir{"/tmp/quarantine"}
+    , stagingDir{PCO_STAGING_DIR}
     , finalDecision{false}
     , reportMessage{}
     , busyResources{}
 {
     try
     {
-#if defined(__linux__)
-        sb           = std::make_unique<LinuxSandbox>("/tmp/quarantine/container");
-        sbi          = std::make_unique<LinuxSandboxInspector>();
-#endif
         devinfo      = std::make_unique<DeviceInfo>();
-        supervisorMq = std::make_shared<MessageQueue<ChildInfo>>();
-        pm           = std::make_unique<ProcessManager>(supervisorMq);
 
         std::string clientCert = devinfo->certPath().string();
         std::string clientKey  = devinfo->keyPath().string();
@@ -33,6 +26,17 @@ UpdateContext::UpdateContext()
         client = std::make_unique<httplib::SSLClient>(host, port, clientCert, clientKey);
         client->set_ca_cert_path(caCert);
         client->enable_server_certificate_verification(true);
+
+        if (setenv("PCO_STAGING_DIR", PCO_STAGING_DIR.c_str(), 1) != 0)
+        {
+            throw std::system_error(std::error_code(errno, std::generic_category()),
+                                    "Cannot setenv PCO_STAGING_DIR");
+        }
+        else if (fs::create_directories(PCO_STAGING_DIR) == false && fs::exists(PCO_STAGING_DIR) == false)
+        {
+            throw std::system_error(std::error_code(errno, std::generic_category()),
+                                    "Cannot create PCO_STAGING_DIR");
+        }
     }
     catch (const nlohmann::detail::exception& e)
     {

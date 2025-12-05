@@ -8,7 +8,7 @@
 class ManifestController final : public Controller
 {
 public:
-    ManifestController() : Controller() {}
+    ManifestController(ServerContext* sc) : Controller(sc) {}
     virtual void registerRoute(httplib::Server& serv) override;
 
 private:
