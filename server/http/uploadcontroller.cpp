@@ -52,7 +52,7 @@ void UploadController::registerRoute(httplib::Server &serv)
         {
             std::cout << ex.what() << std::endl;
             res.status = httplib::InternalServerError_500;
-            res.set_content("Expected manifest and archive", "text/plain");
+            res.set_content("Unexpected error", "text/plain");
         }
         catch (const std::runtime_error& ex)
         {

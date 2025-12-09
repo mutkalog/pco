@@ -24,6 +24,7 @@ private:
     void assignDevices(const std::pair<entry_id_t, RolloutInfo> &info);
     void updateCanary(const std::pair<entry_id_t, RolloutInfo> &info);
     void commitCanary(entry_id_t id);
+    void removeAssignments(entry_id_t id);
     void setReleasesInactive(const std::pair<entry_id_t, RolloutInfo> &info);
 
     ServerContext* sc_;

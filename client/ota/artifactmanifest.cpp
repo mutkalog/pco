@@ -3,7 +3,7 @@
 void ArtifactManifest::loadFromJson(const nlohmann::json &data)
 {
     release.version  = data["release"]["version"] .get<std::string>();
-    release.device   = data["release"]["type"]    .get<std::string>();
+    release.type     = data["release"]["type"]    .get<std::string>();
     release.platform = data["release"]["platform"].get<std::string>();
     release.arch     = data["release"]["arch"]    .get<std::string>();
     std::istringstream ss(data["release"]["timestamp"]     .get<std::string>());
@@ -21,13 +21,6 @@ void ArtifactManifest::loadFromJson(const nlohmann::json &data)
 
         files.push_back(std::move(entry));
     }
-
-    auto req = data.value("testRequirments", nlohmann::json{});
-
-    testRequirments.timeSeconds             = req.value("timeSeconds",             0u);
-    testRequirments.cpuLimitPercentage      = req.value("cpuLimitPercentage",      0.0);
-    testRequirments.memLimitPercentage      = req.value("memLimitPercentage",      0.0);
-    testRequirments.throttleLimitPercentage = req.value("throttleLimitPercentage", 0.0);
 }
 
 nlohmann::json ArtifactManifest::saveInJson() const
@@ -39,7 +32,7 @@ nlohmann::json ArtifactManifest::saveInJson() const
 
     data["release"] = {
         { "version",                      release.version },
-        { "type",                         release.device  },
+        { "type",                         release.type  },
         { "platform",                     release.platform},
         { "arch",                         release.arch    },
     };
@@ -63,15 +56,10 @@ nlohmann::json ArtifactManifest::saveInJson() const
         });
     }
 
-    data["testRequirments"] = {
-        { "timeSeconds",             testRequirments.timeSeconds             },
-        { "cpuLimitPercentage",      testRequirments.cpuLimitPercentage      },
-        { "memLimitPercentage",      testRequirments.memLimitPercentage      },
-        { "throttleLimitPercentage", testRequirments.throttleLimitPercentage }
-    };
-
     return data;
 }
+
+
 
 std::vector<char *> ArtifactManifest::getFileArgs(const File &file)
 {

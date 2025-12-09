@@ -14,7 +14,7 @@ void ManifestController::registerRoute(httplib::Server &serv)
         std::string platform = req.get_param_value("platform");
 
         std::cout << req.method << " on " << req.path << " from " << arch << " "
-                  << type << " on " << platform << std::endl;
+                  << type << " on " << platform << " with id " << devId << std::endl;
 
         try
         {

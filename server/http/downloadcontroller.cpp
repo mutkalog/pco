@@ -11,13 +11,17 @@ void DownloadController::registerRoute(httplib::Server &serv)
         std::string platform = req.get_param_value("platform");
 
         std::cout << req.method << " on " << req.path << " from " << arch << " "
-                  << type << " on " << platform << std::endl;
+                  << type << " on " << platform << " with id " << devId << std::endl;
 
         try
         {
             std::vector<uint8_t> output = service_.getArchive(sc_, devId, type, platform, arch);
             res.status = httplib::OK_200;
             res.set_content(reinterpret_cast<const char*>(output.data()), output.size(), "application/gzip");
+        }
+        catch (const pqxx::sql_error& ex)
+        {
+            throw;
         }
         catch (const std::system_error &ex)
         {

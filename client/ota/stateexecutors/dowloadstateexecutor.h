@@ -3,6 +3,8 @@
 
 #include "stateexecutor.h"
 
+#include <ota/updatecontext.h>
+
 class DowloadStateExecutor final : public StateExecutor
 {
 public:
@@ -10,6 +12,7 @@ public:
     virtual void execute(StateMachine& sm) override;
 
 private:
+    void process(StateMachine& sm, const std::string &responseBody);
     DowloadStateExecutor(enum StateId id) : StateExecutor(id) {}
 };
 

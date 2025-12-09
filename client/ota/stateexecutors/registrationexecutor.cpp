@@ -49,9 +49,10 @@ void RegistrationExecutor::registerDevice(UpdateContext &ctx)
     auto& devinfo = ctx.devinfo;
 
     json info {
-        { "type"    , devinfo->type()     },
-        { "platform", devinfo->platform() },
-        { "arch"    , devinfo->arch()     }
+        { "type"          , devinfo->type()                  },
+        { "platform"      , devinfo->platform()              },
+        { "arch"          , devinfo->arch()                  },
+        { "pollingInterval", devinfo->pollingIntervalMinutes() }
     };
 
     std::string body = info.dump();

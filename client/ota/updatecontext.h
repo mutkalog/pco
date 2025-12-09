@@ -19,21 +19,28 @@ enum UpdateCode : size_t
 
 struct BusyResources
 {
-    uint16_t testingDirCreated : 1;
-    uint16_t reserved          : 15;
+    uint32_t stagingDirCreated  : 1;
+    uint32_t rollbacks          : 1;
+    uint32_t reserved           : 29;
 };
 
 struct UpdateContext
 {
-    bool finalDecision;
+    bool rollback;
     fs::path stagingDir;
+    fs::path prevManifestPath;
     ArtifactManifest manifest;
     std::unique_ptr<DeviceInfo> devinfo;
     std::unique_ptr<httplib::SSLClient> client;
     std::pair<int, std::string> reportMessage;
+    std::unordered_map<fs::path, fs::path> pathToRollbackPathMap;
     BusyResources busyResources;
+    bool recovering;
 
     UpdateContext();
+
+    json dumpContext();
+    void loadContext(const json& ctx);
 };
 
 #endif // UPDATECONTEXT_H

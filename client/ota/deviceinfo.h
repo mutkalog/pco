@@ -16,18 +16,22 @@ class DeviceInfo
 public:
     DeviceInfo();
 
-    void saveNewUpdateInfo(const ArtifactManifest& newManifest);
+    void loadConfig();
+    void loadPrevManifest();
+    void saveNewUpdateInfo(const ArtifactManifest &newManifest);
+
     void saveId(uint32_t id);
 
     auto type() const { return type_; }
     auto platform() const { return platform_; }
     auto arch() const { return arch_; }
-    auto polingIntervalMinutes() const { return pollingIntervalMinutes_; }
+    auto pollingIntervalMinutes() const { return pollingIntervalMinutes_; }
     auto serverUrl() const { return serverUrl_; }
     auto serverPort() const { return serverPort_; }
     auto certPath() const { return certPath_; }
     auto keyPath() const { return keyPath_; }
     auto caCertPath() const { return caCertPath_; }
+    auto publicKeyPath() const { return publicKeyPath_; }
     auto id() const { return id_; }
     auto prevManifest() const { return prevManifest_; }
 
@@ -41,10 +45,9 @@ private:
     fs::path         certPath_;
     fs::path         keyPath_;
     fs::path         caCertPath_;
+    fs::path         publicKeyPath_;
     uint32_t         id_;
     ArtifactManifest prevManifest_;
-
-    void loadConfig();
 };
 
 #endif // DEVICEINFO_H

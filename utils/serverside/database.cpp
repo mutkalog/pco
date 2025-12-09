@@ -22,12 +22,14 @@ const std::string_view RELEASES_TB_CREATION_SQL =
 
 const std::string_view DEVICES_TB_CREATION_SQL =
     "CREATE TABLE IF NOT EXISTS devices (\n"
-    "id            BIGSERIAL PRIMARY KEY,\n"
-    "device_type   TEXT NOT NULL,\n"
-    "platform      TEXT NOT NULL,\n"
-    "arch          TEXT NOT NULL,\n"
-    "created_at    TIMESTAMP WITH TIME ZONE DEFAULT now(),\n"
-    "last_seen     TIMESTAMP WITH TIME ZONE\n"
+    "id              BIGSERIAL PRIMARY KEY,\n"
+    "device_type     TEXT NOT NULL,\n"
+    "platform        TEXT NOT NULL,\n"
+    "arch            TEXT NOT NULL,\n"
+    "created_at      TIMESTAMP WITH TIME ZONE DEFAULT now(),\n"
+    "last_seen       TIMESTAMP WITH TIME zone,\n"
+    "poling_interval INTEGER NOT null,\n"
+    "release_id      BIGINT REFERENCES releases(id)\n"
     ");\n";
 
 const std::string_view RELEASE_ASSIGNMENTS_TB_CREATION_SQL =
@@ -53,12 +55,13 @@ const std::string_view RELEASES_TB_INDEX_SQL =
     "ON releases(device_type, platform, arch, version);\n";
 
 const std::vector<std::string_view> sqls{
-                                        RELEASES_TB_CREATION_SQL,
-                                        DEVICES_TB_CREATION_SQL,
-                                        RELEASE_ASSIGNMENTS_TB_CREATION_SQL,
-                                        REPORTS_TB_CREATION_SQL,
-                                        RELEASES_TB_INDEX_SQL
-                                   };
+    RELEASES_TB_CREATION_SQL,
+    DEVICES_TB_CREATION_SQL,
+    RELEASE_ASSIGNMENTS_TB_CREATION_SQL,
+    REPORTS_TB_CREATION_SQL,
+    RELEASES_TB_INDEX_SQL
+};
+
 }
 
 std::unique_ptr<pqxx::connection> Database::getConnection()

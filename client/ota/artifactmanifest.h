@@ -16,7 +16,7 @@ struct ArtifactManifest
 {
     struct {
         std::string version;
-        std::string device;
+        std::string type;
         std::string platform;
         std::string arch;
         tm timestamp;
@@ -34,16 +34,11 @@ struct ArtifactManifest
 
     std::vector<File> files;
 
-    struct {
-        uint32_t timeSeconds;
-        double   cpuLimitPercentage;
-        double   memLimitPercentage;
-        double   throttleLimitPercentage;
-    } testRequirments;
-
 public:
+    void clear();
     void loadFromJson(const nlohmann::json &data);
     nlohmann::json saveInJson() const;
+
     static std::vector<char *> getFileArgs(const File& file);
 
 private:
@@ -51,7 +46,15 @@ private:
     std::string stringHashFromRaw(const std::vector<uint8_t>& rawHash) const;
 };
 
-
-
+inline void ArtifactManifest::clear()
+{
+    release.version.clear();
+    release.type.clear();
+    release.platform.clear();
+    release.arch.clear();
+    std::memset(&release.timestamp, 0, sizeof release.timestamp);
+    release.timestamp = tm{};
+    files.clear();
+}
 
 #endif // ARTIFACTMANIFEST_H

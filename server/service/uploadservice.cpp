@@ -3,6 +3,7 @@
 #include "database.h"
 #include <iostream>
 #include <nlohmann/json.hpp>
+#include <thread>
 
 
 using json = nlohmann::ordered_json;
@@ -41,12 +42,45 @@ void UploadService::upload(ServerContext* sc, std::optional<int> canaryPercentag
                            const std::string &manifest,
                            const std::string &archive)
 {
-        parseManifest(manifest);
-        parseFiles(archive);
-        commit(sc, canaryPercentage);
+
+    std::stringstream ss;
+    ss << std::this_thread::get_id();
+    fs::path updateBufDir = BUFFER_DIR / ss.str();
+    fs::path storagePath;
+
+    try
+    {
+        ReleasesTableEntry entry;
+
+        parseManifest(manifest, entry);
+        parseFiles(archive, entry, updateBufDir, storagePath);
+        commit(sc, canaryPercentage, entry, updateBufDir);
+    }
+    catch (const pqxx::sql_error& ex)
+    {
+        if (fs::exists(updateBufDir) == true)
+        {
+            fs::remove_all(updateBufDir);
+        }
+
+        throw;
+    }
+    catch (...)
+    {
+        if (fs::exists(updateBufDir) == true)
+        {
+            fs::remove_all(updateBufDir);
+        }
+        if (storagePath.empty() == false && fs::exists(storagePath) == true)
+        {
+            fs::remove_all(storagePath);
+        }
+
+        throw;
+    }
 }
 
-void UploadService::parseManifest(const std::string& raw)
+void UploadService::parseManifest(const std::string& raw, ReleasesTableEntry& entry)
 {
     if (raw.empty())
         throw std::runtime_error("Empty manifest");
@@ -64,64 +98,67 @@ void UploadService::parseManifest(const std::string& raw)
 
     json manifest = json::parse(manifestRaw);
 
-    entry_.manifest  = manifestRaw;
-    entry_.signature = signatureRaw;
-    entry_.version   = manifest["release"]["version"];
-    entry_.type      = manifest["release"]["type"];
-    entry_.platform  = manifest["release"]["platform"];
-    entry_.arch      = manifest["release"]["arch"];
+    entry.manifest  = manifestRaw;
+    entry.signature = signatureRaw;
+    entry.version   = manifest["release"]["version"];
+    entry.type      = manifest["release"]["type"];
+    entry.platform  = manifest["release"]["platform"];
+    entry.arch      = manifest["release"]["arch"];
+    std::cout << "version " << entry.version << std::endl;
 }
 
-void UploadService::parseFiles(const std::string &raw)
+void UploadService::parseFiles(const std::string &raw, ReleasesTableEntry &entry, const fs::path& bufDir, fs::path& storagePath)
 {
     std::vector<uint8_t> data(raw.size());
     std::memcpy(data.data(), raw.data(), raw.size());
 
-    fs::remove_all(BUFFER_DIR);
 
-    if (fs::create_directories(BUFFER_DIR) == false && fs::exists(BUFFER_DIR) == false)
+    fs::remove_all(bufDir);
+
+    if (fs::create_directories(bufDir) == false && fs::exists(bufDir) == false)
         throw std::runtime_error("Cannot create temporary dir");
 
     if (fs::create_directories(STORAGE_DIR) == false && fs::exists(STORAGE_DIR) == false)
         throw std::runtime_error("Cannot create storage dir");
 
-    if (extract(data.data(), data.size(), BUFFER_DIR.c_str()) != 0)
+    if (extract(data.data(), data.size(), bufDir.c_str()) != 0)
     {
         throw std::runtime_error("Cannot extract files from archive");
     }
 
-    for (const auto& entry : fs::directory_iterator(BUFFER_DIR))
+    for (const auto& file : fs::directory_iterator(bufDir))
     {
-        if (entry.is_regular_file())
+        if (file.is_regular_file())
         {
-            fs::path serverPath = STORAGE_DIR / entry_.type / entry_.arch / entry_.platform / entry_.version;
+            fs::path serverPath = STORAGE_DIR / entry.type / entry.arch / entry.platform / entry.version;
+            storagePath = serverPath;
 
             if (fs::create_directories(serverPath) == false && fs::exists(serverPath) == false)
                 throw std::runtime_error("Cannot create storage dir");
 
-            entry_.bufferPathToStoragePath.push_back({entry.path(), serverPath});
-            entry_.storagePaths.push_back(serverPath / entry.path().filename());
+            entry.bufferPathToStoragePath.push_back({file.path(), serverPath});
+            entry.storagePaths.push_back(serverPath / file.path().filename());
         }
     }
 }
 
-void UploadService::commit(ServerContext* sc, std::optional<int> canaryPercentage)
+void UploadService::commit(ServerContext* sc, std::optional<int> canaryPercentage, ReleasesTableEntry &entry, const fs::path& bufDir)
 {
-    if (entry_.storagePaths.empty() == true)
+    if (entry.storagePaths.empty() == true)
     {
         throw std::runtime_error("Cannot update");
     }
 
     pqxx::work txn(*conn_);
 
-    std::string paths = toPgArray(entry_.storagePaths);
+    std::string paths = toPgArray(entry.storagePaths);
     pqxx::params params;
-    params.append(entry_.manifest);
-    params.append(entry_.signature);
-    params.append(entry_.version);
-    params.append(entry_.type);
-    params.append(entry_.platform);
-    params.append(entry_.arch);
+    params.append(entry.manifest);
+    params.append(entry.signature);
+    params.append(entry.version);
+    params.append(entry.type);
+    params.append(entry.platform);
+    params.append(entry.arch);
     params.append(paths);
     params.append(canaryPercentage.has_value());
     params.append(canaryPercentage.has_value() == true ? *canaryPercentage : 0);
@@ -136,59 +173,36 @@ void UploadService::commit(ServerContext* sc, std::optional<int> canaryPercentag
 
     auto newId = res[0]["id"].as<uint64_t>();
 
-    // if (canaryPercentage.has_value() == true)
-    // {
-        auto& rollouts = sc->data->staging.rollouts;
 
-        std::lock_guard<std::mutex> lg(rollouts.mtx);
-        static_cast<void>(lg);
-
-        RolloutInfo ri{
-            entry_.type,
-            entry_.platform,
-            entry_.arch,
-            canaryPercentage.has_value() == true,
-            canaryPercentage.has_value() == true ? *canaryPercentage : 0,
-            canaryPercentage.has_value() == true ? *canaryPercentage : 0,
-        };
-
-        rollouts.releaseToInfoMap.insert({newId, std::move(ri)});
-        rollouts.cv.notify_one();
-    // }
-    // else
-    // {
-    //     pqxx::params updateParams;
-    //     updateParams.append(newId);
-    //     updateParams.append(entry_.type);
-    //     updateParams.append(entry_.platform);
-    //     updateParams.append(entry_.arch);
-
-    //     txn.exec(
-    //         "UPDATE releases "
-    //         "SET active = false "
-    //         "WHERE device_type = $2 "
-    //         "  AND platform = $3 "
-    //         "  AND arch = $4 "
-    //         "  AND id <> $1;", updateParams);
-
-    // }
-
-
-    const auto& map = entry_.bufferPathToStoragePath;
+    const auto& map = entry.bufferPathToStoragePath;
     for (size_t i = 0; i != map.size(); ++i)
     {
         fs::copy(map[i].first, map[i].second);
-        if (fs::exists(entry_.storagePaths[i]) == false)
-            throw std::runtime_error("File was not copied");
 
         ///@todo убрать
-        std::cout << entry_.storagePaths[i] << std::endl;
+        std::cout << entry.storagePaths[i] << std::endl;
     }
     std::cout << "Files successfuly transfered" << std::endl;
 
-    fs::remove_all(BUFFER_DIR);
     txn.commit();
 
-    cleanupEntry();
+    fs::remove_all(bufDir);
+
+    auto& rollouts = sc->data->staging.rollouts;
+
+    std::lock_guard<std::mutex> lg(rollouts.mtx);
+    static_cast<void>(lg);
+
+    RolloutInfo ri {
+        entry.type,
+        entry.platform,
+        entry.arch,
+        canaryPercentage.has_value() == true,
+        canaryPercentage.has_value() == true ? *canaryPercentage : 0,
+        canaryPercentage.has_value() == true ? *canaryPercentage : 0,
+    };
+
+    rollouts.releaseToInfoMap.insert({newId, std::move(ri)});
+    rollouts.cv.notify_all();
 }
 

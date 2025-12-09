@@ -19,7 +19,8 @@ private:
     ServerContext* sc_;
     std::thread suprevisorThread_;
     std::atomic<bool> stopFlag_;
-    void markFailed(std::pair<uint64_t, UpdateInfo> update);
+
+    void processUpdate(const std::pair<uint64_t, UpdateInfo> &update);
     std::unique_ptr<pqxx::connection> conn_;
 };
 

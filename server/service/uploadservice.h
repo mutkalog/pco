@@ -31,24 +31,11 @@ public:
     void upload(ServerContext *sc, std::optional<int> canaryPercentage, const std::string& manifest, const std::string& archive);
 
 private:
-    ReleasesTableEntry entry_;
-    void parseManifest(const std::string &raw);
-    void parseFiles(const std::string &raw);
-    void commit(ServerContext *sc, std::optional<int> canaryPercentage);
-    void cleanupEntry();
-
+    void parseManifest(const std::string &raw, ReleasesTableEntry &entry);
+    void parseFiles(const std::string &raw, ReleasesTableEntry &entry, const fs::path &bufDir, fs::path &storagePath);
+    void commit(ServerContext *sc, std::optional<int> canaryPercentage, ReleasesTableEntry &entry, const fs::path &bufDir);
     std::unique_ptr<pqxx::connection> conn_;
 };
 
-inline void UploadService::cleanupEntry() {
-    entry_.manifest.clear();
-    entry_.signature.clear();
-    entry_.version.clear();
-    entry_.type.clear();
-    entry_.platform.clear();
-    entry_.arch.clear();
-    entry_.storagePaths.clear();
-    entry_.bufferPathToStoragePath.clear();
-}
 
 #endif // UPLOADSERVICE_H

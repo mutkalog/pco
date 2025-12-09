@@ -22,6 +22,4 @@ inline IdleStateExecutor &IdleStateExecutor::instance() {
     return inst;
 }
 
-
-
 #endif // IDLESTATEEXECUTOR_H

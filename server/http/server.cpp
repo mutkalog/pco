@@ -20,15 +20,15 @@ Server::Server()
 
 void Server::setupRoutes()
 {
-    serv_.set_exception_handler(
-    [](const httplib::Request &req, httplib::Response &res, std::exception_ptr ep) {
-        try { std::rethrow_exception(ep); }
-        catch (const std::exception &e) {
-            std::cerr << "Handler exception: " << e.what() << std::endl;
-        }
-        res.status = 500;
-        res.set_content("Internal error", "text/plain");
-    });
+    // serv_.set_exception_handler(
+    // [](const httplib::Request &req, httplib::Response &res, std::exception_ptr ep) {
+    //     try { std::rethrow_exception(ep); }
+    //     catch (const std::exception &e) {
+    //         std::cerr << "Handler exception: " << e.what() << std::endl;
+    //     }
+    //     res.status = 500;
+    //     res.set_content("Internal error", "text/plain");
+    // });
 
     for (const auto& cont : controllers_)
     {

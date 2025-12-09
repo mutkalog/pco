@@ -5,7 +5,6 @@
 #include <mutex>
 #include <memory>
 #include <unordered_map>
-#include <unordered_set>
 #include <string>
 
 
@@ -13,13 +12,17 @@ using entry_id_t = uint64_t;
 
 struct UpdateInfo
 {
-    uint64_t releaseId;
+    uint64_t    releaseId;
+    bool        finished;
+    uint64_t    status;
+    std::string report;
     std::chrono::steady_clock::time_point expireTime;
 };
 
 struct Updates
 {
     std::mutex mtx;
+    std::condition_variable cv;
     std::unordered_map<entry_id_t, UpdateInfo> devToReleaseMap;
 };
 

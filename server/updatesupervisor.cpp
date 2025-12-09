@@ -9,8 +9,6 @@ namespace {
 const std::string MESSAGE    = "Server marked that update as failed due to timeout";
 const int         ERROR_CODE = 3;
 
-///@todo придумать общее хранилище для sql
-/// такие же sql есть в reportservice.cpp
 constexpr std::string_view UPDATE_ASSIGMENT_STATUS_SQL =
     "UPDATE release_assignments "
     "SET status = $3 "
@@ -26,6 +24,10 @@ constexpr std::string_view INSERT_REPORT_SQL =
     ") "
    "RETURNING id ";
 
+constexpr std::string_view UPDATE_DEV_INSTALLED_RELEASE_ID_SQL =
+    "UPDATE devices \n"
+    "SET release_id = $1\n"
+    "WHERE id = $2\n";
 }
 
 UpdateSupervisor::UpdateSupervisor(ServerContext* sc, std::unique_ptr<pqxx::connection>&& conn)
@@ -46,18 +48,21 @@ void UpdateSupervisor::loop()
 {
     while (stopFlag_ == false)
     {
+        auto& updates = sc_->data->staging.updates;
         {
-            auto& staging = sc_->data->staging;
+            std::unique_lock<std::mutex> ul(updates.mtx);
+            updates.cv.wait(ul, [&](){
+                std::cout << "Checking upadates" << std::endl;
+                return updates.devToReleaseMap.empty() == false;
+            });
 
-            std::lock_guard<std::mutex> lg(staging.updates.mtx);
-            static_cast<void>(lg);
+            std::vector<decltype(updates.devToReleaseMap.begin())> iteratorsToDelete;
 
-            std::vector<decltype(staging.updates.devToReleaseMap.begin())> iteratorsToDelete;
-
-            for (auto it = staging.updates.devToReleaseMap.begin();
-                 it != staging.updates.devToReleaseMap.end(); ++it)
+            for (auto it = updates.devToReleaseMap.begin();
+                 it != updates.devToReleaseMap.end(); ++it)
             {
-                if (std::chrono::steady_clock::now() >= it->second.expireTime)
+                if (std::chrono::steady_clock::now() >= it->second.expireTime
+                    || it->second.finished == true)
                 {
                     iteratorsToDelete.push_back(it);
                 }
@@ -65,8 +70,11 @@ void UpdateSupervisor::loop()
 
             for (const auto& it : iteratorsToDelete)
             {
-                markFailed(*it);
-                staging.updates.devToReleaseMap.erase(it);
+                processUpdate(*it);
+                updates.devToReleaseMap.erase(it);
+
+                std::cout << "SIZE OF updates in process map "
+                          << updates.devToReleaseMap.size() << std::endl;
             }
         }
 
@@ -74,40 +82,26 @@ void UpdateSupervisor::loop()
     }
 }
 
-void UpdateSupervisor::markFailed(std::pair<uint64_t, UpdateInfo> update)
+void UpdateSupervisor::processUpdate(const std::pair<uint64_t, UpdateInfo>& update)
 {
-    std::cout << "UpdateSupervisor:: marking device "
-              << update.first << " with releaseId "
-              << update.second.releaseId << " failed" << std::endl;
+    const auto& [devId, info] = update;
 
-    pqxx::params params;
-    params.append(update.first);
-    params.append(update.second.releaseId);
-    params.append(ERROR_CODE);
-    params.append(json{"message", MESSAGE}.dump());
-
-    // pqxx::work txn(*conn_);
-
-    // pqxx::result r = txn.exec(
-    //         "INSERT INTO reports (device_id, release_id, status, body) "
-    //         "VALUES ( "
-    //         "    $1, "
-    //         "    $2, "
-    //         "    $3, "
-    //         "    $4::jsonb "
-    //         ") "
-    //         "RETURNING id;",
-            // params);
-
+    bool timeout = info.finished == false;
+    std::cout << "UpdateSupervisor: processing device " << devId << " report: ";
+    std::cout << (timeout ? "device hung up" : "device gracefully reported" ) << std::endl;
 
     pqxx::work txn(*conn_);
 
     {
         pqxx::params params;
-        params.append(update.first);
-        params.append(update.second.releaseId);
-        params.append(ERROR_CODE);
-        params.append(json{"message", MESSAGE}.dump());
+        params.append(devId);
+        params.append(info.releaseId);
+        params.append(timeout == true
+                          ? ERROR_CODE
+                          : info.status);
+        params.append(timeout == true
+                          ? json{"message", MESSAGE}.dump()
+                          : info.report);
 
         pqxx::result r = txn.exec(INSERT_REPORT_SQL, params);
     }
@@ -116,11 +110,23 @@ void UpdateSupervisor::markFailed(std::pair<uint64_t, UpdateInfo> update)
         pqxx::params params;
         params.append(update.first);
         params.append(update.second.releaseId);
-        params.append("failed");
+        params.append(timeout == true
+                             ? "failed"
+                             : info.status == 0
+                                  ? "success"
+                                  : "failed");
 
         pqxx::result r = txn.exec(UPDATE_ASSIGMENT_STATUS_SQL, params);
     }
 
+    if (timeout == false)
+    {
+        pqxx::params params;
+        params.append(info.releaseId);
+        params.append(devId);
+
+        pqxx::result r = txn.exec(UPDATE_DEV_INSTALLED_RELEASE_ID_SQL, params);
+    }
 
     txn.commit();
 }

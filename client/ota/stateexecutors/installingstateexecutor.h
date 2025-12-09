@@ -1,24 +1,29 @@
-// #ifndef INSTALLINGSTATEEXECUTOR_H
-// #define INSTALLINGSTATEEXECUTOR_H
+#ifndef INSTALLINGSTATEEXECUTOR_H
+#define INSTALLINGSTATEEXECUTOR_H
 
-// #include "../statemachine.h"
-// #include "stateexecutor.h"
+#include "stateexecutor.h"
+#include <filesystem>
 
 
-// class InstallingStateExecutor final : public StateExecutor
-// {
-// public:
-//     static InstallingStateExecutor& instance();
-//     virtual void execute(StateMachine& sm) override;
 
-// private:
-//     InstallingStateExecutor(enum StateId id) : StateExecutor(id) {}
-// };
+namespace fs = std::filesystem;
 
-// inline InstallingStateExecutor &InstallingStateExecutor::instance()
-// {
-//     static InstallingStateExecutor inst(INSTALLING);
-//     return inst;
-// }
+class InstallingStateExecutor final : public StateExecutor
+{
+public:
+    static InstallingStateExecutor& instance();
+    virtual void execute(StateMachine& sm) override;
 
-// #endif // INSTALLINGSTATEEXECUTOR_H
+private:
+    InstallingStateExecutor(enum StateId id) : StateExecutor(id) {}
+    void installAtomic(const fs::path& srcStaging, const fs::path& destPath);
+    std::pair<fs::path, fs::path> createRollback(const fs::path& file);
+};
+
+inline InstallingStateExecutor &InstallingStateExecutor::instance()
+{
+    static InstallingStateExecutor inst(INSTALLING);
+    return inst;
+}
+
+#endif // INSTALLINGSTATEEXECUTOR_H

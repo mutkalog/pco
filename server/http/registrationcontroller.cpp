@@ -20,7 +20,7 @@ void RegistrationController::registerRoute(httplib::Server &serv)
         json jsonbody;
         try
         {
-            uint64_t id        = service_.registerDevice(type, platform, arch);
+            uint64_t id        = service_.registerDevice(requestBody);
             jsonbody["status"] = "registered";
             jsonbody["id"]     = id;
 

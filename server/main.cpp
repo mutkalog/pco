@@ -16,8 +16,8 @@ int main()
 {
     ServerContext context;
     context.data                       = std::make_shared<Data>();
-    context.data->updateTimeoutSeconds = std::chrono::seconds(5);
-    sleep(1);
+    context.data->updateTimeoutSeconds = std::chrono::seconds(60);
+    // sleep(1);
 
     UpdateSupervisor  us(&context, Database::instance().getConnection());
     RolloutSupervisor rs(&context, Database::instance().getConnection());

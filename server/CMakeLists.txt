@@ -11,7 +11,7 @@ add_executable(pco-server main.cpp
     service/downloadservice.h service/downloadservice.cpp
     service/registrationservice.h service/registrationservice.cpp
     service/reportservice.h service/reportservice.cpp
-    servercontext.h servercontext.cpp
+    servercontext.h
     updatesupervisor.h updatesupervisor.cpp
     rolloutsupervisor.h rolloutsupervisor.cpp)
 

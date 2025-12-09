@@ -19,7 +19,7 @@ public:
         DOWNLOADING,
         VERIFYING,
         PREPARING,
-        PRE_COMMITTING,
+        INSTALLING,
         COMMITTING,
         FINALIZING,
         TOTAL
@@ -35,7 +35,6 @@ public:
 
 protected:
     const enum StateId id_;
-
     static std::unordered_map<StateId, std::string> idToNameMap_;
 };
 

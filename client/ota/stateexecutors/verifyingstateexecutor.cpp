@@ -1,5 +1,5 @@
 #include "verifyingstateexecutor.h"
-#include "environmentbuildingstateexecutor.h"
+#include "preparingstateexecutor.h"
 #include "finalizingstateexecutor.h"
 #include "../../../utils/common/utils.h"
 
@@ -57,12 +57,13 @@ void VerifyingStateExecutor::execute(StateMachine &sm)
                     "Cannot setenv PCO_REQUIRED_ARTIFACTS_PATHS");
         }
 
-        sm.instance().transitTo(&PreInstallScriptStateExecutor::instance());
+        sm.instance().transitTo(&PreparingStateExecutor::instance());
     }
     catch (const std::exception& ex)
     {
         std::string message = ex.what();
         std::cout << message << std::endl;
+        ctx.rollback = true;
         ctx.reportMessage =
         {
             ARTIFACT_INTEGRITY_ERROR,

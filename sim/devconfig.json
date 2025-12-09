@@ -1,0 +1,12 @@
+{
+    "type": "Raspberry Pi 4",
+    "platform": "Linux",
+    "arch": "ARMv8",
+    "updatePollingIntervalMinutes": 1,
+    "serverURL": "localhost",
+    "serverPort": 39024,
+    "certPath": "/opt/keys/client.crt",
+    "keyPath": "/opt/keys/client.key",
+    "caCertPath": "/opt/keys/ca.pem",
+    "publicKeyPath": "/opt/keys/public.pem"
+}

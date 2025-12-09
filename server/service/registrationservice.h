@@ -1,20 +1,20 @@
 #ifndef REGISTRATIONSERVICE_H
 #define REGISTRATIONSERVICE_H
 
-#include "database.h"
+#include "connectionspull.h"
 #include <cstdint>
-#include <string>
+#include <nlohmann/json.hpp>
 
 
+using json = nlohmann::ordered_json;
 
 class RegistrationService
 {
 public:
-    RegistrationService() : conn_(Database::instance().getConnection()) {}
-    uint64_t registerDevice(const std::string &devType, const std::string &platform,
-                        const std::string &arch);
+    uint64_t registerDevice(const json &body);
+
 private:
-    std::unique_ptr<pqxx::connection> conn_;
+    ConnectionsPool cp_;
 };
 
 #endif // REGISTRATIONSERVICE_H

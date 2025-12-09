@@ -3,6 +3,8 @@
 
 #include "updatecontext.h"
 #include "stateexecutors/stateexecutor.h"
+#include <optional>
+
 
 class StateMachine
 {
@@ -22,13 +24,17 @@ public:
 
 private:
     StateMachine();
+    void recover();
 
+    void dumpMachineState(StateExecutor::StateId state);
+    std::optional<StateExecutor::StateId> loadMachineState();
+
+    bool inCriticalStates_;
     StateExecutor *currentSE_;
+
+    static StateExecutor* stateTable_[];
 };
 
-inline void StateMachine::transitTo(StateExecutor *se) {
-    std::cout << "Transition to " << se->textId() << " state" << std::endl;
-    currentSE_ = se;
-}
+
 
 #endif // STATEMACHINE_H

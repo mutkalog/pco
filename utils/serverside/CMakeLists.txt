@@ -8,9 +8,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(serverside STATIC
   database.h database.cpp
+  connectionspull.h
 )
 
-target_link_libraries(serverside PRIVATE  pqxx
-)
+target_link_libraries(serverside PRIVATE pqxx)
 
 target_compile_definitions(serverside PRIVATE SERVERSIDE_LIBRARY)

@@ -6,15 +6,17 @@
 namespace {
 
 constexpr std::string_view ROLLOUT_CHECK_SQL =
-    "SELECT \n"
-    "	COUNT(*) AS total,\n"
-    "	COUNT(*) FILTER (WHERE status = 'success') AS success_count,\n"
-    "	BOOL_OR(status = 'failed') AS has_failed,\n"
-    "	CEIL(COUNT(*) FILTER (WHERE status = 'success') * 100.0 / COUNT(*)) AS success_percent,\n"
-    "	r.canary_percent\n"
+    "SELECT\n"
+    "    COUNT(*) AS total,\n"
+    "    COUNT(*) FILTER (WHERE ra.status = 'success') AS success_count,\n"
+    "    BOOL_OR(ra.status = 'failed') AS has_failed,\n"
+    "    BOOL_OR ((now() - d.last_seen) > (d.poling_interval * 3 * interval '1 minute')) as inactive_device,\n"
+    "    CEIL(COUNT(*) FILTER (WHERE ra.status = 'success') * 100.0 / COUNT(*)) AS success_percent,\n"
+    "    r.canary_percent\n"
     "FROM release_assignments ra\n"
     "JOIN releases r ON ra.release_id = r.id\n"
-    "WHERE release_id = $1\n"
+    "JOIN devices d ON ra.device_id = d.id\n"
+    "WHERE ra.release_id = $1\n"
     "GROUP BY r.canary_percent;\n";
 
 constexpr std::string_view INVALIDATE_RELEASE_SQL =
@@ -23,31 +25,6 @@ constexpr std::string_view INVALIDATE_RELEASE_SQL =
     "    is_canary = false "
     "WHERE id = $1 ";
 
-    // "	LIMIT CEIL((SELECT count(*) FROM filtred) * $5 / 100.0) "
-// constexpr std::string_view DEVICES_ASSIGNMENTS_SQL =
-//     "WITH filtred AS ( "
-//     "	SELECT id "
-//     "	FROM devices d "
-//     "	WHERE d.device_type = $2 "
-//     "	  AND d.platform    = $3 "
-//     "	  AND d.arch        = $4 "
-//     "     AND NOT EXISTS ( "
-//     "          SELECT 1 FROM release_assignments ra "
-//     "          WHERE ra.release_id = $1 "
-//     "            AND ra.device_id = d.id "
-//     "      ) "
-//     "), "
-//     " limited AS( "
-//     "	SELECT id "
-//     "	FROM filtred "
-//     "	ORDER BY random() "
-//     "	LIMIT $5 "
-//     ") "
-//     "INSERT INTO release_assignments (release_id, device_id) "
-//     "SELECT $1, id "
-//     "FROM limited ";
-
-
 constexpr std::string_view DEVICES_ASSIGNMENTS_SQL =
     " WITH total AS (\n"
     "    SELECT COUNT(*) AS cnt\n"
@@ -55,6 +32,7 @@ constexpr std::string_view DEVICES_ASSIGNMENTS_SQL =
     "    WHERE device_type = $2\n"
     "      AND platform    = $3\n"
     "      AND arch        = $4\n"
+    "      AND (now() - last_seen) < (poling_interval * 3 * interval '1 minute')\n"
     "),\n"
     "available AS (\n"
     "    SELECT id\n"
@@ -62,6 +40,7 @@ constexpr std::string_view DEVICES_ASSIGNMENTS_SQL =
     "    WHERE d.device_type = $2\n"
     "      AND d.platform    = $3\n"
     "      AND d.arch        = $4\n"
+    "      AND (now() - last_seen) < (poling_interval * 3 * interval '1 minute')\n"
     "      AND NOT EXISTS (\n"
     "          SELECT 1\n"
     "          FROM release_assignments ra\n"
@@ -81,14 +60,14 @@ constexpr std::string_view UPDATE_CANARY_SQL =
     "WHERE id = $1 "
     "RETURNING canary_percent";
 
-constexpr std::string_view COMMIT_CANNARY_SET_NOT_CANARY_SQL =
+constexpr std::string_view COMMIT_CANNARY_SQL =
     "UPDATE releases "
     "SET is_canary = false, "
     "    canary_percent = 100, "
     "    active = true "
     "WHERE id = $1 ; ";
 
-constexpr std::string_view COMMIT_CANNARY_REMOVE_ASSIGNMENTS_SQL =
+constexpr std::string_view REMOVE_ASSIGNMENTS_SQL =
     "DELETE FROM release_assignments "
     "WHERE release_id = $1 ";
 
@@ -107,10 +86,13 @@ RolloutSupervisor::RolloutSupervisor(ServerContext *sc, std::unique_ptr<pqxx::co
     , stopFlag_(false)
     , sc_(sc)
     , conn_(std::move(conn))
-{}
+{
+    std::cout << "RolloutSupervisor: i have been created" << std::endl;
+}
 
 RolloutSupervisor::~RolloutSupervisor()
 {
+    std::cout << "RolloutSupervisor: exiting!" << std::endl;
     stopFlag_ = true;
     suprevisorThread_.join();
 }
@@ -159,28 +141,36 @@ void RolloutSupervisor::loop()
                 double total = row["total"].as<int>();
                 double count = row["success_count"].as<int>();
 
-                int percent = std::ceil(count * 100 / total);
-
-                bool   updateFailed   = row["has_failed"]     .as<bool>();
-                int    successPercent = row["success_percent"].as<int>();
-                int    currentGoal    = row["canary_percent"] .as<int>();
+                bool updateFailed    = row["has_failed"]     .as<bool>();
+                bool inactiveDevice  = row["inactive_device"].as<bool>();
+                int  successPercent  = row["success_percent"].as<int>();
+                int  inCanaryPercent = row["canary_percent"] .as<int>();
 
                 std::cout << "total: " << total << " count: " << count
-                          << " percent: " << successPercent << " my percentage: " << percent << " goal: " << currentGoal
+                          << " percent: " << successPercent << " goal: " << inCanaryPercent
+                          << " has failed: " << updateFailed
+                          << " inactive dev: " << inactiveDevice
                           << std::endl;
 
-                if (updateFailed == true)
+                if (updateFailed == true || inactiveDevice == true)
                 {
+                    std::cout << "RolloutSupervisor: update failed"
+                              << (inactiveDevice == true
+                                      ? " due to inactive device in selection"
+                                      : "")
+                              << std::endl;
                     invalidateRelease(id);
+                    removeAssignments(id);
                     iteratorsToDelete.push_back(it);
                 }
 
                 if (successPercent >= 100)
                 {
-                    if (currentGoal == 100)
+                    if (inCanaryPercent == 100)
                     {
                         setReleasesInactive(*it);
                         commitCanary(id);
+                        removeAssignments(id);
                         iteratorsToDelete.push_back(it);
                     }
                     else
@@ -202,7 +192,7 @@ void RolloutSupervisor::loop()
             }
         }
 
-        std::this_thread::sleep_for(std::chrono::seconds(5));
+        std::this_thread::sleep_for(std::chrono::seconds(10));
     }
 }
 
@@ -228,7 +218,7 @@ void RolloutSupervisor::invalidateRelease(entry_id_t id)
 void RolloutSupervisor::assignDevices(const std::pair<entry_id_t, RolloutInfo>& info)
 {
     const auto& [id, ri] = info;
-    std::cout << "RolloutManager: assigning  " << ri.nextSelectionPercentage << "% of "
+    std::cout << "RolloutManager: assigning " << ri.nextSelectionPercentage << "% more of "
               << ri.arch << " " << ri.type << " on " << ri.platform << " to "
               << id << " release" << std::endl;
 
@@ -266,8 +256,17 @@ void RolloutSupervisor::commitCanary(entry_id_t id)
     pqxx::params params;
     params.append(id);
 
-    pqxx::result res = txn.exec(COMMIT_CANNARY_SET_NOT_CANARY_SQL, params);
-    res = txn.exec(COMMIT_CANNARY_REMOVE_ASSIGNMENTS_SQL, params);
+    pqxx::result res = txn.exec(COMMIT_CANNARY_SQL, params);
+    txn.commit();
+}
+
+void RolloutSupervisor::removeAssignments(entry_id_t id)
+{
+    pqxx::work txn(*conn_);
+    pqxx::params params;
+    params.append(id);
+
+    pqxx::result res = txn.exec(REMOVE_ASSIGNMENTS_SQL, params);
     txn.commit();
 
     std::cout << "RolloutManager: removed " << res.affected_rows()
