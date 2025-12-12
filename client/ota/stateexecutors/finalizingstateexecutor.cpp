@@ -25,11 +25,13 @@ void FinalizingStateExecutor::execute(StateMachine &sm)
               << (ctx.rollback == false ? "UPDATE" : "ROLLBACK")
               << std::endl;
 
-    safeExec([&]{
-        if (ctx.rollback == true)
+    safeExec([&] {
+        if (ctx.rollback == true) {
             rollback(ctx);
-        else
+        } else {
             ctx.devinfo->saveNewUpdateInfo(ctx.manifest);
+            ctx.updateEnvironmentVars();
+        }
     });
 
     bool cleanupOk = safeExec([&]{
@@ -84,7 +86,7 @@ void FinalizingStateExecutor::execute(StateMachine &sm)
         std::cout << "REBOOT REBOOT REBOOT" << std::endl;
         exit(EXIT_FAILURE);
         ///@todo вернуть
-        // std::system("shutdown -r now");
+        // std::system("reboot -r now");
     }
 }
 
@@ -162,7 +164,7 @@ void FinalizingStateExecutor::totalCleanup(UpdateContext &ctx)
         std::error_code ec;
         fs::remove_all(ctx.stagingDir);
         if (ec)
-            throw std::system_error(ec, "cannot remove rollback dir");
+            throw std::system_error(ec, "Cannot remove rollback dir");
 
         br.stagingDirCreated = 0;
     }
@@ -174,7 +176,7 @@ void FinalizingStateExecutor::totalCleanup(UpdateContext &ctx)
             std::error_code ec;
             fs::remove_all(rollbackPath, ec);
             if (ec)
-                throw std::system_error(ec, "cannot remove rollback dir");
+                throw std::system_error(ec, "Cannot remove rollback dir");
         }
 
         ctx.pathToRollbackPathMap.clear();
@@ -185,9 +187,20 @@ void FinalizingStateExecutor::totalCleanup(UpdateContext &ctx)
     std::memcpy(&word, &ctx.busyResources, sizeof(BusyResources));
 
     if (word != 0)
-        throw std::runtime_error(
-            "Something hasn't been cleaned! BusyResources word = " +
-            std::to_string(word));
+        std::cout << "Something hasn't been cleaned! BusyResources word = " +
+                         std::to_string(word);
+
+    if (unsetenv("PCO_NEW_ARTIFACTS_PATHS") != 0)
+    {
+        throw std::system_error(std::error_code(errno, std::generic_category()),
+            "Cannot unsetenv PCO_NEW_ARTIFACTS_PATHS");
+    }
+
+    if (unsetenv("PCO_STAGING_ARTIFACTS_PATHS") != 0)
+    {
+        throw std::system_error(std::error_code(errno, std::generic_category()),
+            "Cannot unsetenv PCO_STAGING_ARTIFACTS_PATHS");
+    }
 
     ctx.recovering = false;
     ctx.rollback   = false;

@@ -1,6 +1,7 @@
 #ifndef INSTALLINGSTATEEXECUTOR_H
 #define INSTALLINGSTATEEXECUTOR_H
 
+#include "ota/updatecontext.h"
 #include "stateexecutor.h"
 #include <filesystem>
 
@@ -15,6 +16,7 @@ public:
     virtual void execute(StateMachine& sm) override;
 
 private:
+    void createNewArtifatctsPathsVar(const UpdateContext &ctx);
     InstallingStateExecutor(enum StateId id) : StateExecutor(id) {}
     void installAtomic(const fs::path& srcStaging, const fs::path& destPath);
     std::pair<fs::path, fs::path> createRollback(const fs::path& file);

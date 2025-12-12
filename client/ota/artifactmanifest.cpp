@@ -2,10 +2,10 @@
 
 void ArtifactManifest::loadFromJson(const nlohmann::json &data)
 {
-    release.version  = data["release"]["version"] .get<std::string>();
-    release.type     = data["release"]["type"]    .get<std::string>();
-    release.platform = data["release"]["platform"].get<std::string>();
-    release.arch     = data["release"]["arch"]    .get<std::string>();
+    release.version  = data["release"]["version"]          .get<std::string>();
+    release.type     = data["release"]["type"]             .get<std::string>();
+    release.platform = data["release"]["platform"]         .get<std::string>();
+    release.arch     = data["release"]["arch"]             .get<std::string>();
     std::istringstream ss(data["release"]["timestamp"]     .get<std::string>());
 
     ss >> std::get_time(&release.timestamp, "%Y-%m-%dT%H:%M:%SZ");
@@ -13,9 +13,8 @@ void ArtifactManifest::loadFromJson(const nlohmann::json &data)
     for (const auto& file : data["files"])
     {
         ArtifactManifest::File entry;
-        entry.isExecutable = file["executable"]                     .get<bool>();
+        entry.isScript     = file.value("script", false);
         entry.installPath  = file["path"]                           .get<std::string>();
-        entry.args         = file.value("args", std::vector<std::string>{});
         entry.hash.algo    = file["hash"]["algo"]                   .get<std::string>();
         entry.hash.value   = rawHashFromString(file["hash"]["value"].get<std::string>());
 
@@ -31,10 +30,10 @@ nlohmann::json ArtifactManifest::saveInJson() const
     strftime(buf.data(), buf.size(), "%Y-%m-%dT%H:%M:%SZ", &release.timestamp);
 
     data["release"] = {
-        { "version",                      release.version },
-        { "type",                         release.type  },
-        { "platform",                     release.platform},
-        { "arch",                         release.arch    },
+        { "version",  release.version },
+        { "type",     release.type    },
+        { "platform", release.platform},
+        { "arch",     release.arch    },
     };
 
     data["release"]["timestamp"] = std::string(buf.data());
@@ -44,38 +43,18 @@ nlohmann::json ArtifactManifest::saveInJson() const
     for (const auto& file : files)
     {
         data["files"].push_back({
-            { "executable", file.isExecutable },
-            { "path",       file.installPath  },
+            { "script", file.isScript     },
+            { "path",   file.installPath  },
             { "hash",
             {
                 { "algo",  file.hash.algo                     },
                 { "value", stringHashFromRaw(file.hash.value) }
             }
             },
-            { "args",       file.args         }
         });
     }
 
     return data;
-}
-
-
-
-std::vector<char *> ArtifactManifest::getFileArgs(const File &file)
-{
-    std::vector<char *> requiredArgs;
-    requiredArgs.reserve(file.args.size() + 2);
-
-    requiredArgs.push_back(const_cast<char *>(file.installPath.filename().c_str()));
-
-    for (auto &arg : file.args)
-    {
-        requiredArgs.push_back(const_cast<char *>(arg.c_str()));
-    }
-
-    requiredArgs.push_back(nullptr);
-
-    return requiredArgs;
 }
 
 std::vector<uint8_t> ArtifactManifest::rawHashFromString(const std::string &stringHash)

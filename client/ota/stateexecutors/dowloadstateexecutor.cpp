@@ -32,7 +32,7 @@ void DowloadStateExecutor::execute(StateMachine &sm)
             {
                 std::cout << "Server unavailable. "
                              "Trying send request again..." << std::endl;
-                std::this_thread::sleep_for(std::chrono::minutes(2));
+                std::this_thread::sleep_for(std::chrono::minutes(1));
             }
         }
 

@@ -1,8 +1,9 @@
 #!/bin/bash
 
-echo "pre-commit.sh: doing sh stuff!"
+echo -n "pre-commit.sh: here is PCO_NEW_ARTIFACTS_PATHS:"
 
-echo "pre-commit.sh: FAIL"
+echo "$PCO_NEW_ARTIFACTS_PATHS"
+echo -n "pre-commit.sh: exiting with code 1"
 
 exit 1
 

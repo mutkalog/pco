@@ -49,5 +49,4 @@ void CommittingStateExecutor::execute(StateMachine &sm)
         std::cout << message << std::endl;
         sm.instance().transitTo(&FinalizingStateExecutor::instance());
     }
-
 }

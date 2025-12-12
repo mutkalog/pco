@@ -12,15 +12,15 @@ void InstallingStateExecutor::execute(StateMachine &sm)
 
     try
     {
-        std::cout << "Creating rollbacks..." << std::endl;
         auto& rbMap = ctx.pathToRollbackPathMap;
 
         for (const auto &file : ctx.devinfo->prevManifest().files)
         {
+            std::cout << "Creating rollbacks..." << std::endl;
             const auto parentpath = fs::path(file.installPath).parent_path();
             const auto filename   = fs::path(file.installPath).filename();
 
-            if (parentpath.empty() == true)
+            if (file.isScript == true)
                 continue;
 
             auto pathToRollbackPath = createRollback(file.installPath);
@@ -45,11 +45,13 @@ void InstallingStateExecutor::execute(StateMachine &sm)
             const auto parentpath = fs::path(file.installPath).parent_path();
             const auto filename   = fs::path(file.installPath).filename();
 
-            if (parentpath.empty() == true)
+            if (file.isScript == true)
                 continue;
 
             installAtomic(ctx.stagingDir / filename, file.installPath);
         }
+
+        createNewArtifatctsPathsVar(ctx);
 
         std::cout << "Update was successfully installed!" << std::endl;
         sm.instance().transitTo(&CommittingStateExecutor::instance());
@@ -59,6 +61,27 @@ void InstallingStateExecutor::execute(StateMachine &sm)
         ctx.rollback = true;
         std::cout << ex.what() << std::endl;
         sm.instance().transitTo(&FinalizingStateExecutor::instance());
+    }
+}
+
+void InstallingStateExecutor::createNewArtifatctsPathsVar(const UpdateContext& ctx)
+{
+    std::string pcoNewArtifactsPaths;
+    for (const auto& file : ctx.manifest.files)
+    {
+        if (file.isScript == false)
+        {
+            pcoNewArtifactsPaths += file.installPath.string() + ":";
+        }
+    }
+
+    pcoNewArtifactsPaths = pcoNewArtifactsPaths.substr(0, pcoNewArtifactsPaths.size() - 1);
+    std::cout << "PCO_NEW_ARTIFACTS_PATHS: " << pcoNewArtifactsPaths << std::endl;
+
+    if (setenv("PCO_NEW_ARTIFACTS_PATHS", pcoNewArtifactsPaths.c_str(), 1) != 0)
+    {
+        throw std::system_error(std::error_code(errno, std::generic_category()),
+                "Cannot setenv PCO_NEW_ARTIFACTS_PATHS");
     }
 }
 

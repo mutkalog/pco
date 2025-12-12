@@ -3,7 +3,7 @@
 #include "idlestateexecutor.h"
 
 
-void RegistrationExecutor::execute(StateMachine &sm)
+void RegistrationStateExecutor::execute(StateMachine &sm)
 {
     if (sm.context.devinfo->id() == 0)
     {
@@ -44,14 +44,14 @@ void RegistrationExecutor::execute(StateMachine &sm)
     sm.instance().transitTo(&IdleStateExecutor::instance());
 }
 
-void RegistrationExecutor::registerDevice(UpdateContext &ctx)
+void RegistrationStateExecutor::registerDevice(UpdateContext &ctx)
 {
     auto& devinfo = ctx.devinfo;
 
     json info {
-        { "type"          , devinfo->type()                  },
-        { "platform"      , devinfo->platform()              },
-        { "arch"          , devinfo->arch()                  },
+        { "type"           , devinfo->type()                   },
+        { "platform"       , devinfo->platform()               },
+        { "arch"           , devinfo->arch()                   },
         { "pollingInterval", devinfo->pollingIntervalMinutes() }
     };
 

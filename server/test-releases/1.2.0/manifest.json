@@ -8,16 +8,13 @@
   },
   "files": [
     {
-      "executable" : true,
       "path": "/opt/myapp/app2",
-      "args": ["-h", "6", "--world"],
       "hash": {
         "algo": "sha256",
         "value": "c93c5405894b0fa7021fc39e32e205e40ca0abc06335fd2a024adf6a5bf28459"
       }
     },
     {
-      "executable" : true,
       "path": "/opt/myapp/app3",
       "hash": {
         "algo": "sha256",
@@ -25,19 +22,19 @@
       }
     },
     {
-      "executable" : true,
+      "script" : true,
       "path": "prepare.sh",
       "hash": {
         "algo": "sha256",
-        "value": "c859d3cc65ea90371f6ab178a7ae06fd9cc16b6d10e1d837a529366d0a1684ad"
+        "value": "b759349b9e633738f4b8047bba51a62035e363f6e16379744a7f7840bda237aa"
       }
     },
     {
-      "executable" : true,
+      "script" : true,
       "path": "commit.sh",
       "hash": {
         "algo": "sha256",
-        "value": "c871bf2452b38f5e3f6d249b7177a5567458f56151e7c2b3e0f06e92ce1df24d"
+        "value": "857256cbded0a1789906bb0ac93a3ac32bd7ff90746e6964d997a9468938d5ef"
       }
     }
   ]

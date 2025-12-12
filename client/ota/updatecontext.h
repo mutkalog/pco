@@ -39,6 +39,7 @@ struct UpdateContext
 
     UpdateContext();
 
+    void updateEnvironmentVars();
     json dumpContext();
     void loadContext(const json& ctx);
 };

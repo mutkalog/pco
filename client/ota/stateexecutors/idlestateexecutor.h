@@ -8,13 +8,10 @@ class IdleStateExecutor final : public StateExecutor
 {
 public:
     static IdleStateExecutor& instance();
-
     virtual void execute(StateMachine& sm) override;
 
 private:
     IdleStateExecutor(enum StateId id) : StateExecutor(id) {}
-
-    void watchProcesses(UpdateContext &ctx, int gracefullExitMillis);
 };
 
 inline IdleStateExecutor &IdleStateExecutor::instance() {

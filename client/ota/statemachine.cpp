@@ -19,7 +19,7 @@ const fs::path STATE_FILE = "/var/pco/state.json";
 
 StateExecutor* StateMachine::stateTable_[] =
 {
-    &RegistrationExecutor::instance(),
+    &RegistrationStateExecutor::instance(),
     &IdleStateExecutor::instance(),
     &CheckingStateExecutor::instance(),
     &DowloadStateExecutor::instance(),
@@ -32,7 +32,7 @@ StateExecutor* StateMachine::stateTable_[] =
 
 
 StateMachine::StateMachine()
-    : currentSE_(&RegistrationExecutor::instance())
+    : currentSE_(&RegistrationStateExecutor::instance())
 {
     recover();
 }
@@ -63,7 +63,7 @@ void StateMachine::dumpMachineState(StateExecutor::StateId state)
     stateAndContext["state"]   = state;
     stateAndContext["context"] = context.dumpContext();
 
-    int fd = ::open(STATE_FILE.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
+    int fd = ::open(STATE_FILE.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_SYNC, 0644);
     if (fd < 0)
     {
         throw std::system_error(std::error_code(errno, std::generic_category()),
@@ -77,13 +77,6 @@ void StateMachine::dumpMachineState(StateExecutor::StateId state)
         ::close(fd);
         throw std::system_error(std::error_code(errno, std::generic_category()),
                         "Cannot write to state file");
-    }
-
-    if (::fsync(fd) != 0)
-    {
-        ::close(fd);
-        throw std::system_error(std::error_code(errno, std::generic_category()),
-                        "Cannot fsync state file");
     }
 
     ::close(fd);
@@ -127,7 +120,29 @@ void StateMachine::transitTo(StateExecutor *se)
         }
         else if (fs::exists(STATE_FILE))
         {
-            fs::remove_all(STATE_FILE);
+            std::error_code ec;
+            bool            removed = fs::remove(STATE_FILE, ec);
+
+            if (ec || removed == false)
+            {
+                throw std::system_error(ec, "cannot rm STATE_FILE");
+            }
+
+            int dirFd = ::open(STATE_FILE.parent_path().c_str(), O_DIRECTORY | O_RDONLY);
+            if (dirFd < 0)
+            {
+                throw std::system_error(std::error_code(errno, std::generic_category()),
+                                        "Cannot open state file parent dir " + STATE_FILE.string());
+            }
+
+            if (::fsync(dirFd) != 0)
+            {
+                ::close(dirFd);
+                throw std::system_error(std::error_code(errno, std::generic_category()),
+                                "Cannot fsync state file parent dir");
+            }
+
+            ::close(dirFd);
         }
     }
     catch (const std::exception& ex)

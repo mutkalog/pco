@@ -23,9 +23,8 @@ struct ArtifactManifest
     } release;
 
     struct File {
-        bool isExecutable;
+        bool isScript;
         fs::path installPath;
-        std::vector<std::string> args;
         struct {
             std::string algo;
             std::vector<uint8_t> value;
@@ -38,8 +37,6 @@ public:
     void clear();
     void loadFromJson(const nlohmann::json &data);
     nlohmann::json saveInJson() const;
-
-    static std::vector<char *> getFileArgs(const File& file);
 
 private:
     std::vector<uint8_t> rawHashFromString(const std::string& stringHash);

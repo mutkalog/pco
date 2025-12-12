@@ -30,16 +30,7 @@ UpdateContext::UpdateContext()
         client->set_ca_cert_path(caCert);
         client->enable_server_certificate_verification(true);
 
-        if (setenv("PCO_STAGING_DIR", PCO_STAGING_DIR.c_str(), 1) != 0)
-        {
-            throw std::system_error(std::error_code(errno, std::generic_category()),
-                                    "Cannot setenv PCO_STAGING_DIR");
-        }
-        else if (fs::create_directories(PCO_STAGING_DIR) == false && fs::exists(PCO_STAGING_DIR) == false)
-        {
-            throw std::system_error(std::error_code(errno, std::generic_category()),
-                                    "Cannot create PCO_STAGING_DIR");
-        }
+        updateEnvironmentVars();
 
         if (recovering == true)
         {
@@ -78,13 +69,32 @@ UpdateContext::UpdateContext()
     }
 }
 
+void UpdateContext::updateEnvironmentVars()
+{
+    std::string pcoRollbackArtifactsPaths;
+    for (const auto& file : devinfo->prevManifest().files)
+    {
+        if (file.isScript == false)
+        {
+            pcoRollbackArtifactsPaths += file.installPath.string() + ":";
+        }
+    }
+
+    pcoRollbackArtifactsPaths  = pcoRollbackArtifactsPaths.substr(0, pcoRollbackArtifactsPaths.size() - 1);
+
+    std::cout << "PCO_ROLLBACK_ARTIFACTS_PATHS: "  << pcoRollbackArtifactsPaths  << std::endl;
+    if (setenv("PCO_ROLLBACK_ARTIFACTS_PATHS", pcoRollbackArtifactsPaths.c_str(), 1) != 0)
+    {
+        throw std::system_error(std::error_code(errno, std::generic_category()),
+                "Cannot setenv PCO_ROLLBACK_ARTIFACTS_PATHS");
+    }
+}
+
 json UpdateContext::dumpContext()
 {
     nlohmann::json j;
 
     j["rollback"]         = rollback;
-    j["stagingDir"]       = stagingDir.string();
-    j["prevManifestPath"] = prevManifestPath.string();
     j["manifest"]         = manifest.saveInJson();
     j["reportMessage"]    = {reportMessage.first, reportMessage.second};
     j["recovering"]       = recovering;
@@ -107,8 +117,6 @@ json UpdateContext::dumpContext()
 void UpdateContext::loadContext(const json &ctx)
 {
     rollback         = ctx["rollback"];
-    stagingDir       = ctx["stagingDir"].get<std::string>();
-    prevManifestPath = ctx["prevManifestPath"].get<std::string>();
     reportMessage    = {ctx["reportMessage"][0].get<int>(),
                         ctx["reportMessage"][1].get<std::string>()};
     recovering       = ctx["recovering"];

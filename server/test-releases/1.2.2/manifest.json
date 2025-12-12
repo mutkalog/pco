@@ -8,16 +8,13 @@
   },
   "files": [
     {
-      "executable" : true,
       "path": "/opt/myapp/app2",
-      "args": ["-h", "6", "--world"],
       "hash": {
         "algo": "sha256",
         "value": "c93c5405894b0fa7021fc39e32e205e40ca0abc06335fd2a024adf6a5bf28459"
       }
     },
     {
-      "executable" : true,
       "path": "/opt/myapp/app3",
       "hash": {
         "algo": "sha256",
@@ -25,27 +22,27 @@
       }
     },
     {
-      "executable" : true,
+      "script" : true,
       "path": "prepare.sh",
       "hash": {
         "algo": "sha256",
-        "value": "c859d3cc65ea90371f6ab178a7ae06fd9cc16b6d10e1d837a529366d0a1684ad"
+        "value": "b759349b9e633738f4b8047bba51a62035e363f6e16379744a7f7840bda237aa"
       }
     },
     {
-      "executable" : true,
+      "script" : true,
       "path": "commit.sh",
       "hash": {
         "algo": "sha256",
-        "value": "cc789122761885c8c8352080fe7dd92749a3606210677bf7783b58643b143a91"
+        "value": "a0ebebc7fba5144b4128db9144f39d43e4eb2ef97caa7c5d710dea6c065f39de"
       }
     },
     {
-      "executable" : true,
+      "script" : true,
       "path": "rollback.sh",
       "hash": {
         "algo": "sha256",
-        "value": "d868c7549e1da381c1b17ce30f27babf4a85c076163291a52ec11aa568e5bac0"
+        "value": "5809b2c0b830b1310b71eafec66ed5482780059e92925bef8d12233c95e75d3d"
       }
     }
   ]

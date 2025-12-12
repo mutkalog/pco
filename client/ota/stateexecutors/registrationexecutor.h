@@ -4,20 +4,20 @@
 #include "stateexecutor.h"
 #include "../statemachine.h"
 
-class RegistrationExecutor final : public StateExecutor
+class RegistrationStateExecutor final : public StateExecutor
 {
 public:
-    static RegistrationExecutor& instance();
+    static RegistrationStateExecutor& instance();
     virtual void execute(StateMachine& sm) override;
 
 private:
-    RegistrationExecutor(enum StateId id) : StateExecutor(id) {}
+    RegistrationStateExecutor(enum StateId id) : StateExecutor(id) {}
     void registerDevice(UpdateContext& ctx);
 };
 
-inline RegistrationExecutor &RegistrationExecutor::instance()
+inline RegistrationStateExecutor &RegistrationStateExecutor::instance()
 {
-    static RegistrationExecutor inst(REGISTRATION);
+    static RegistrationStateExecutor inst(REGISTRATION);
     return inst;
 }
 
