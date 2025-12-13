@@ -6,14 +6,12 @@
 #include <nlohmann/json.hpp>
 
 
-
 using json = nlohmann::ordered_json;
 
 class ReportService
 {
 public:
-    // ReportService() : conn_(Database::instance().getConnection()) {}
-    void parseReport(ServerContext *sc, const json& report);
+    void parseReport(std::shared_ptr<ServerContext> &sc, const json& report);
 
 private:
     ConnectionsPool cp_;

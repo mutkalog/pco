@@ -3,7 +3,6 @@
 
 #include <condition_variable>
 #include <mutex>
-#include <memory>
 #include <unordered_map>
 #include <string>
 
@@ -52,15 +51,9 @@ struct Staging
     Rollouts rollouts;
 };
 
-struct Data
-{
-    Staging staging;
-    std::chrono::steady_clock::duration updateTimeoutSeconds;
-};
-
 struct ServerContext
 {
-    std::shared_ptr<Data> data;
+    Staging staging;
 };
 
 

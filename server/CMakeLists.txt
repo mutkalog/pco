@@ -13,7 +13,10 @@ add_executable(pco-server main.cpp
     service/reportservice.h service/reportservice.cpp
     servercontext.h
     updatesupervisor.h updatesupervisor.cpp
-    rolloutsupervisor.h rolloutsupervisor.cpp)
+    rolloutsupervisor.h rolloutsupervisor.cpp
+    database.h database.cpp
+    connectionspull.h
+)
 
 # include_directories("/home/alexander/Projects/posix-compatable-ota/cpp-httplib")
 # find_library(HTTPLIB cpp-httplib REQUIRED)
@@ -22,9 +25,9 @@ target_compile_definitions(pco-server PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
 
 target_link_libraries(pco-server PRIVATE
     common
-    serverside
     ssl
     crypto
+    pqxx
 )
 
 include(GNUInstallDirs)

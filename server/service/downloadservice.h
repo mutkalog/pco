@@ -1,7 +1,6 @@
 #ifndef DOWNLOADSERVICE_H
 #define DOWNLOADSERVICE_H
 
-// #include "database.h"
 #include "connectionspull.h"
 #include "servercontext.h"
 #include <cstdint>
@@ -9,17 +8,13 @@
 #include <vector>
 
 
-
 class DownloadService
 {
 public:
-    // DownloadService() : conn_(Database::instance().getConnection()) {}
-    std::vector<uint8_t> getArchive(ServerContext *sc, uint32_t devId, const std::string &devType,
+    std::vector<uint8_t> getArchive(std::shared_ptr<ServerContext> &sc, uint32_t devId, const std::string &devType,
                                     const std::string &platform, const std::string &arch);
 private:
     ConnectionsPool cp_;
-
-    // std::unique_ptr<pqxx::connection> conn_;
 };
 
 #endif // DOWNLOADSERVICE_H

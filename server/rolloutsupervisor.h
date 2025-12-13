@@ -2,33 +2,29 @@
 #define ROLLOUTSUPERVISOR_H
 
 #include "servercontext.h"
-#include "database.h"
+#include "connectionspull.h"
 
-#include <atomic>
-#include <thread>
+#include "common/task.h"
 
 
-///@todo проверять is_canary при запуске
-class RolloutSupervisor
+class RolloutSupervisor final : public Task
 {
 public:
-    RolloutSupervisor(ServerContext *sc, std::unique_ptr<pqxx::connection> &&conn);
-    ~RolloutSupervisor();
+    RolloutSupervisor(std::shared_ptr<ServerContext>& sc);
 
 private:
-    void loop();
-    std::thread suprevisorThread_;
-    std::atomic<bool> stopFlag_;
-    pqxx::result checkRollout(entry_id_t id);
-    void invalidateRelease(entry_id_t id);
-    void assignDevices(const std::pair<entry_id_t, RolloutInfo> &info);
-    void updateCanary(const std::pair<entry_id_t, RolloutInfo> &info);
-    void commitCanary(entry_id_t id);
-    void removeAssignments(entry_id_t id);
-    void setReleasesInactive(const std::pair<entry_id_t, RolloutInfo> &info);
+    virtual void process() override;
 
-    ServerContext* sc_;
-    std::unique_ptr<pqxx::connection> conn_;
+    pqxx::result checkRollout(pqxx::connection& conn, entry_id_t id);
+    void invalidateRelease(pqxx::connection& conn, entry_id_t id);
+    void assignDevices(pqxx::connection& conn, const std::pair<entry_id_t, RolloutInfo> &info);
+    void updateCanary(pqxx::connection& conn, const std::pair<entry_id_t, RolloutInfo> &info);
+    void commitCanary(pqxx::connection& conn, entry_id_t id);
+    void removeAssignments(pqxx::connection& conn, entry_id_t id);
+    void setReleasesInactive(pqxx::connection& conn, const std::pair<entry_id_t, RolloutInfo> &info);
+
+    std::shared_ptr<ServerContext> sc_;
+    ConnectionsPool cp_;
 };
 
 #endif // ROLLOUTSUPERVISOR_H

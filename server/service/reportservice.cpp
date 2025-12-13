@@ -8,7 +8,7 @@ constexpr std::string_view CHECK_DEVICE_SQL =
 }
 
 
-void ReportService::parseReport(ServerContext* sc, const json &report)
+void ReportService::parseReport(std::shared_ptr<ServerContext>& sc, const json &report)
 {
     auto conn = cp_.acquire();
     try
@@ -16,7 +16,7 @@ void ReportService::parseReport(ServerContext* sc, const json &report)
         uint64_t deviceId = report["id"];
         int      status   = report["error"]["code"];
         {
-            auto &staging = sc->data->staging;
+            auto &staging = sc->staging;
 
             std::lock_guard<std::mutex> lg(staging.updates.mtx);
             static_cast<void>(lg);

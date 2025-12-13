@@ -1,17 +1,19 @@
 #include "downloadservice.h"
-#include "../../utils/common/archive.h"
+#include "../../utils/common/archivetools.h"
 #include "database.h"
 #include <iostream>
 
 namespace {
+///@todo  добавить получение интервала полинга из devices
+///       и времени на обновления из releases
 constexpr std::string_view CANNARY_SQL =
-    "SELECT r.file_paths, r.id \n"
+    "SELECT r.file_paths, r.id, r.installation_time \n"
     "FROM release_assignments ra \n"
     "JOIN releases r on r.id = ra.release_id\n"
     "WHERE ra.device_id = $1;\n";
 
 constexpr std::string_view FALLBACK_SQL =
-    "SELECT r.file_paths, r.id "
+    "SELECT r.file_paths, r.id, r.installation_time "
     "FROM releases r "
     "JOIN devices d ON d.id = $1 "
         "AND d.device_type = r.device_type "
@@ -24,26 +26,29 @@ constexpr std::string_view FALLBACK_SQL =
         "AND r.active = true";
 
 constexpr uint64_t ERROR_CODE = 3;
+///@todo поменять на 5
+constexpr int      FIXED_GRACE_PERIOD_MINUTES = 5;
 }
 
 std::vector<uint8_t>
-DownloadService::getArchive(ServerContext *sc, uint32_t devId,
+DownloadService::getArchive(std::shared_ptr<ServerContext>& sc, uint32_t devId,
                             const std::string &devType,
                             const std::string &platform,
                             const std::string &arch)
 {
-    auto passUpdateInfo = [&sc](uint64_t devId, uint64_t relId)
+    auto passUpdateInfo = [&sc](uint64_t devId, uint64_t relId, int timeoutTimeMinutes)
     {
-        auto& updates = sc->data->staging.updates;
+        auto& updates = sc->staging.updates;
         std::lock_guard<std::mutex> lg(updates.mtx);
         static_cast<void>(lg);
 
         UpdateInfo info {
            relId,
-            false,
-            3,
-            "",
-           std::chrono::steady_clock::now() + sc->data->updateTimeoutSeconds
+           false,
+           ERROR_CODE,
+           "",
+           std::chrono::steady_clock::now() +
+               std::chrono::minutes(timeoutTimeMinutes)
         };
 
         updates.devToReleaseMap.insert({devId, info});
@@ -78,11 +83,14 @@ DownloadService::getArchive(ServerContext *sc, uint32_t devId,
 
         std::vector<std::string> paths{};
 
-        const pqxx::row& row       = res[0];
-        std::string      raw       = row["file_paths"].c_str();
-        uint64_t         releaseId = row["id"].as<uint64_t>();
+        const pqxx::row& row             = res[0];
+        std::string      raw             = row["file_paths"].c_str();
+        uint64_t         releaseId       = row["id"].as<uint64_t>();
+        int              instTimeMinutes = row["installation_time"].as<int>();
 
-        passUpdateInfo(devId, releaseId);
+        int instMaxTime = instTimeMinutes + FIXED_GRACE_PERIOD_MINUTES;
+
+        passUpdateInfo(devId, releaseId, instMaxTime);
         updateInfoPassed = true;
 
         pqxx::array_parser parser(raw);
@@ -117,7 +125,7 @@ DownloadService::getArchive(ServerContext *sc, uint32_t devId,
             std::cout << "UpdateInfo has not been passed to UpdateSupervisor. "
                          "Passing fail info"
                       << std::endl;
-            passUpdateInfo(devId, -1);
+            passUpdateInfo(devId, -1, 0);
         }
 
         cp_.release(std::move(conn));

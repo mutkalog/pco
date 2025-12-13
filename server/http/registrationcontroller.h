@@ -8,7 +8,7 @@
 class RegistrationController final : public Controller
 {
 public:
-    RegistrationController(ServerContext* sc) : Controller(sc) {}
+    RegistrationController(std::shared_ptr<ServerContext>& sc) : Controller(sc) {}
     virtual void registerRoute(httplib::Server& serv) override;
 
 private:

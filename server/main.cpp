@@ -14,20 +14,17 @@
 
 int main()
 {
-    ServerContext context;
-    context.data                       = std::make_shared<Data>();
-    context.data->updateTimeoutSeconds = std::chrono::seconds(60);
-    // sleep(1);
+    auto context = std::make_shared<ServerContext>();
 
-    UpdateSupervisor  us(&context, Database::instance().getConnection());
-    RolloutSupervisor rs(&context, Database::instance().getConnection());
+    UpdateSupervisor  us(context); us.start();
+    RolloutSupervisor rs(context); rs.start();
 
     std::vector<std::unique_ptr<Controller>> ctrls;
-    ctrls.push_back(std::make_unique<UploadController>(&context));
-    ctrls.push_back(std::make_unique<ManifestController>(&context));
-    ctrls.push_back(std::make_unique<DownloadController>(&context));
-    ctrls.push_back(std::make_unique<ReportController>(&context));
-    ctrls.push_back(std::make_unique<RegistrationController>(&context));
+    ctrls.push_back(std::make_unique<UploadController>(context));
+    ctrls.push_back(std::make_unique<ManifestController>(context));
+    ctrls.push_back(std::make_unique<DownloadController>(context));
+    ctrls.push_back(std::make_unique<ReportController>(context));
+    ctrls.push_back(std::make_unique<RegistrationController>(context));
 
     Server::instance().setControllers(std::move(ctrls));
     Server::instance().setupRoutes();

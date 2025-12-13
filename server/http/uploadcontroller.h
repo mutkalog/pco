@@ -8,7 +8,7 @@
 class UploadController final : public Controller
 {
 public:
-    UploadController(ServerContext* sc) : Controller(sc) {}
+    UploadController(std::shared_ptr<ServerContext>& sc) : Controller(sc) {}
     virtual void registerRoute(httplib::Server& serv) override;
 
 private:

@@ -5,20 +5,21 @@ namespace {
 
 const std::string_view RELEASES_TB_CREATION_SQL =
     "CREATE TABLE IF NOT EXISTS releases (\n"
-    "id            BIGSERIAL PRIMARY KEY,\n"
-    "manifest_raw  TEXT NOT NULL,\n"
-    "signature_raw TEXT NOT NULL,\n"
-    "version       TEXT NOT NULL,\n"
-    "device_type   TEXT NOT NULL,\n"
-    "platform      TEXT NOT NULL,\n"
-    "arch          TEXT NOT NULL,\n"
-    "file_paths    TEXT[] NOT NULL,\n"
-    "update_errors INTEGER NOT NULL DEFAULT 0,\n"
-    "created_at    TIMESTAMPTZ DEFAULT now(),\n"
-    "active        BOOLEAN DEFAULT true,\n"
-    "is_canary     BOOLEAN DEFAULT false,\n"
-    "canary_percent INT DEFAULT 0\n"
-    ");\n";
+    "id             BIGSERIAL PRIMARY KEY,\n"
+    "manifest_raw   TEXT NOT NULL,\n"
+    "signature_raw  TEXT NOT NULL,\n"
+    "version        TEXT NOT NULL,\n"
+    "device_type    TEXT NOT NULL,\n"
+    "platform       TEXT NOT NULL,\n"
+    "arch           TEXT NOT NULL,\n"
+    "file_paths     TEXT[] NOT NULL,\n"
+    "update_errors  INTEGER NOT NULL DEFAULT 0,\n"
+    "created_at     TIMESTAMPTZ DEFAULT now(),\n"
+    "active         BOOLEAN DEFAULT true,\n"
+    "is_canary      BOOLEAN DEFAULT false,\n"
+    "canary_percent INT DEFAULT 0,\n"
+    "installation_time INT NOT NULL\n"
+");\n";
 
 const std::string_view DEVICES_TB_CREATION_SQL =
     "CREATE TABLE IF NOT EXISTS devices (\n"

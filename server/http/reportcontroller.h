@@ -5,11 +5,10 @@
 #include "service/reportservice.h"
 
 
-
 class ReportController final : public Controller
 {
 public:
-    ReportController(ServerContext* sc) : Controller(sc) {}
+    ReportController(std::shared_ptr<ServerContext>& sc) : Controller(sc) {}
     virtual void registerRoute(httplib::Server& serv) override;
 
 private:

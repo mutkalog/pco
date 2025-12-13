@@ -30,55 +30,43 @@ constexpr std::string_view UPDATE_DEV_INSTALLED_RELEASE_ID_SQL =
     "WHERE id = $2\n";
 }
 
-UpdateSupervisor::UpdateSupervisor(ServerContext* sc, std::unique_ptr<pqxx::connection>&& conn)
-    : suprevisorThread_(std::thread(&UpdateSupervisor::loop, this))
-    , stopFlag_(false)
-    , conn_(Database::instance().getConnection())
+UpdateSupervisor::UpdateSupervisor(std::shared_ptr<ServerContext> &sc)
+    : Task("UpdateSupervisor", 10)
     , sc_(sc)
 {
 }
 
-UpdateSupervisor::~UpdateSupervisor()
-{
-    stopFlag_ = true;
-    suprevisorThread_.join();
-}
 
-void UpdateSupervisor::loop()
+void UpdateSupervisor::process()
 {
-    while (stopFlag_ == false)
+    auto& updates = sc_->staging.updates;
     {
-        auto& updates = sc_->data->staging.updates;
+        std::unique_lock<std::mutex> ul(updates.mtx);
+        updates.cv.wait(ul, [&](){
+            std::cout << "UpdateSupervisor: checking updates" << std::endl;
+            return updates.devToReleaseMap.empty() == false;
+        });
+
+        std::vector<entry_id_t> idsToDelete;
+
+        for (auto it = updates.devToReleaseMap.begin();
+             it != updates.devToReleaseMap.end(); ++it)
         {
-            std::unique_lock<std::mutex> ul(updates.mtx);
-            updates.cv.wait(ul, [&](){
-                std::cout << "Checking upadates" << std::endl;
-                return updates.devToReleaseMap.empty() == false;
-            });
-
-            std::vector<decltype(updates.devToReleaseMap.begin())> iteratorsToDelete;
-
-            for (auto it = updates.devToReleaseMap.begin();
-                 it != updates.devToReleaseMap.end(); ++it)
-            {
-                if (std::chrono::steady_clock::now() >= it->second.expireTime
-                    || it->second.finished == true)
-                {
-                    iteratorsToDelete.push_back(it);
-                }
-            }
-
-            for (const auto& it : iteratorsToDelete)
+            if (std::chrono::steady_clock::now() >= it->second.expireTime
+                || it->second.finished == true)
             {
                 processUpdate(*it);
-                updates.devToReleaseMap.erase(it);
-
-                std::cout << "SIZE OF updates in process map "
-                          << updates.devToReleaseMap.size() << std::endl;
+                idsToDelete.push_back(it->first);
             }
         }
 
-        std::this_thread::sleep_for(std::chrono::seconds(5));
+        for (const auto& id : idsToDelete)
+        {
+            updates.devToReleaseMap.erase(id);
+
+            std::cout << "UpdateSupervisor: size of updates in process map "
+                      << updates.devToReleaseMap.size() << std::endl;
+        }
     }
 }
 
@@ -90,7 +78,9 @@ void UpdateSupervisor::processUpdate(const std::pair<uint64_t, UpdateInfo>& upda
     std::cout << "UpdateSupervisor: processing device " << devId << " report: ";
     std::cout << (timeout ? "device hung up" : "device gracefully reported" ) << std::endl;
 
-    pqxx::work txn(*conn_);
+    auto conn = cp_.acquire();
+
+    pqxx::work txn(*conn);
 
     {
         pqxx::params params;
@@ -129,4 +119,6 @@ void UpdateSupervisor::processUpdate(const std::pair<uint64_t, UpdateInfo>& upda
     }
 
     txn.commit();
+
+    cp_.release(std::move(conn));
 }

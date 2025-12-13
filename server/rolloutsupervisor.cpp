@@ -1,14 +1,11 @@
 #include "rolloutsupervisor.h"
 #include <cmath>
 #include <iostream>
-#include <vector>
 
 namespace {
 
 constexpr std::string_view ROLLOUT_CHECK_SQL =
     "SELECT\n"
-    "    COUNT(*) AS total,\n"
-    "    COUNT(*) FILTER (WHERE ra.status = 'success') AS success_count,\n"
     "    BOOL_OR(ra.status = 'failed') AS has_failed,\n"
     "    BOOL_OR ((now() - d.last_seen) > (d.poling_interval * 3 * interval '1 minute')) as inactive_device,\n"
     "    CEIL(COUNT(*) FILTER (WHERE ra.status = 'success') * 100.0 / COUNT(*)) AS success_percent,\n"
@@ -81,133 +78,121 @@ constexpr std::string_view SET_RELEASES_INACTIVE_SQL =
 }
 
 
-RolloutSupervisor::RolloutSupervisor(ServerContext *sc, std::unique_ptr<pqxx::connection>&& conn)
-    : suprevisorThread_(std::thread(&RolloutSupervisor::loop, this))
-    , stopFlag_(false)
+RolloutSupervisor::RolloutSupervisor(std::shared_ptr<ServerContext> &sc)
+    : Task("RolloutSupervisor", 10)
     , sc_(sc)
-    , conn_(std::move(conn))
-{
-    std::cout << "RolloutSupervisor: i have been created" << std::endl;
-}
+{}
 
-RolloutSupervisor::~RolloutSupervisor()
+void RolloutSupervisor::process()
 {
-    std::cout << "RolloutSupervisor: exiting!" << std::endl;
-    stopFlag_ = true;
-    suprevisorThread_.join();
-}
-
-void RolloutSupervisor::loop()
-{
-    while (stopFlag_ == false)
+    auto conn = cp_.acquire();
+    try
     {
-        auto& rollouts = sc_->data->staging.rollouts;
+        auto& rollouts = sc_->staging.rollouts;
+
+        std::unique_lock<std::mutex> ul(rollouts.mtx);
+        rollouts.cv.wait(ul, [&](){
+            std::cout << "RolloutSupervisor: checking" << std::endl;
+            return rollouts.releaseToInfoMap.empty() == false;
+        });
+
+        std::vector<entry_id_t> idsToDelete;
+
+        for (auto it = rollouts.releaseToInfoMap.begin();
+             it != rollouts.releaseToInfoMap.end();
+             ++it)
         {
-            std::unique_lock<std::mutex> ul(rollouts.mtx);
-            rollouts.cv.wait(ul, [&](){
-                std::cout << "Checking" << std::endl;
-                return rollouts.releaseToInfoMap.empty() == false;
-            });
+            entry_id_t   id = it->first;
+            RolloutInfo& ri = it->second;
 
-
-            std::vector<decltype(rollouts.releaseToInfoMap.begin())> iteratorsToDelete;
-
-            for (auto it = rollouts.releaseToInfoMap.begin();
-                 it != rollouts.releaseToInfoMap.end();
-                 ++it)
+            if (ri.isCanary == false)
             {
-                entry_id_t   id = it->first;
-                RolloutInfo& ri = it->second;
-
-                if (ri.isCanary == false)
-                {
-                    std::cout << "RolloutSupervisor: got not canary release "
-                              << it->first << std::endl;
-                    setReleasesInactive(*it);
-                    iteratorsToDelete.push_back(it);
-                    continue;
-                }
-
-                pqxx::result res = checkRollout(id);
-
-                if (res.empty())
-                {
-                    assignDevices(*it);
-                    continue;
-                }
-
-                const pqxx::row& row  = res[0];
-
-                double total = row["total"].as<int>();
-                double count = row["success_count"].as<int>();
-
-                bool updateFailed    = row["has_failed"]     .as<bool>();
-                bool inactiveDevice  = row["inactive_device"].as<bool>();
-                int  successPercent  = row["success_percent"].as<int>();
-                int  inCanaryPercent = row["canary_percent"] .as<int>();
-
-                std::cout << "total: " << total << " count: " << count
-                          << " percent: " << successPercent << " goal: " << inCanaryPercent
-                          << " has failed: " << updateFailed
-                          << " inactive dev: " << inactiveDevice
-                          << std::endl;
-
-                if (updateFailed == true || inactiveDevice == true)
-                {
-                    std::cout << "RolloutSupervisor: update failed"
-                              << (inactiveDevice == true
-                                      ? " due to inactive device in selection"
-                                      : "")
-                              << std::endl;
-                    invalidateRelease(id);
-                    removeAssignments(id);
-                    iteratorsToDelete.push_back(it);
-                }
-
-                if (successPercent >= 100)
-                {
-                    if (inCanaryPercent == 100)
-                    {
-                        setReleasesInactive(*it);
-                        commitCanary(id);
-                        removeAssignments(id);
-                        iteratorsToDelete.push_back(it);
-                    }
-                    else
-                    {
-                        int nextTarget             = std::clamp(std::ceil(ri.inRolloutPercentage * 1.5), 0.0, 100.0);
-                        ri.nextSelectionPercentage = nextTarget - ri.inRolloutPercentage;
-                        ri.inRolloutPercentage     = nextTarget;
-
-                        updateCanary(*it);
-                        assignDevices(*it);
-                    }
-                }
+                std::cout << "RolloutSupervisor: got not canary release "
+                          << it->first << std::endl;
+                setReleasesInactive(*conn, *it);
+                idsToDelete.push_back(it->first);
+                continue;
             }
 
-            ///@todo внедрить в первый цикл
-            for (const auto &it : iteratorsToDelete)
+            pqxx::result res = checkRollout(*conn, id);
+
+            if (res.empty())
             {
-                rollouts.releaseToInfoMap.erase(it);
+                assignDevices(*conn, *it);
+                continue;
+            }
+
+            const pqxx::row& row  = res[0];
+
+            bool updateFailed    = row["has_failed"]     .as<bool>();
+            bool inactiveDevice  = row["inactive_device"].as<bool>();
+            int  successPercent  = row["success_percent"].as<int>();
+            int  inCanaryPercent = row["canary_percent"] .as<int>();
+
+             std::cout << " percent: " << successPercent << ", goal: " << inCanaryPercent
+                      << ", has failed: " << updateFailed
+                      << ", inactive dev: " << inactiveDevice
+                      << std::endl;
+
+            if (updateFailed == true || inactiveDevice == true)
+            {
+                std::cout << "RolloutSupervisor: update failed"
+                          << (inactiveDevice == true
+                                  ? " due to inactive device in selection"
+                                  : "")
+                          << std::endl;
+                invalidateRelease(*conn, id);
+                removeAssignments(*conn, id);
+                idsToDelete.push_back(it->first);
+            }
+
+            if (successPercent >= 100)
+            {
+                if (inCanaryPercent == 100)
+                {
+                    setReleasesInactive(*conn, *it);
+                    commitCanary(*conn, id);
+                    removeAssignments(*conn, id);
+                    idsToDelete.push_back(it->first);
+                }
+                else
+                {
+                    int nextTarget             = std::clamp(std::ceil(ri.inRolloutPercentage * 2), 0.0, 100.0);
+                    ri.nextSelectionPercentage = nextTarget - ri.inRolloutPercentage;
+                    ri.inRolloutPercentage     = nextTarget;
+
+                    updateCanary(*conn, *it);
+                    assignDevices(*conn, *it);
+                }
             }
         }
 
-        std::this_thread::sleep_for(std::chrono::seconds(10));
+        for (const auto &id : idsToDelete)
+        {
+            rollouts.releaseToInfoMap.erase(id);
+        }
+
+        cp_.release(std::move(conn));
+    }
+    catch (...)
+    {
+        cp_.release(std::move(conn));
     }
 }
 
-pqxx::result RolloutSupervisor::checkRollout(entry_id_t id)
+
+pqxx::result RolloutSupervisor::checkRollout(pqxx::connection& conn, entry_id_t id)
 {
-    pqxx::work txn(*conn_);
+    pqxx::work txn(conn);
     pqxx::params params;
     params.append(id);
 
     return txn.exec(ROLLOUT_CHECK_SQL, params);
 }
 
-void RolloutSupervisor::invalidateRelease(entry_id_t id)
+void RolloutSupervisor::invalidateRelease(pqxx::connection &conn, entry_id_t id)
 {
-    pqxx::work txn(*conn_);
+    pqxx::work txn(conn);
     pqxx::params params;
     params.append(id);
 
@@ -215,14 +200,14 @@ void RolloutSupervisor::invalidateRelease(entry_id_t id)
     txn.commit();
 }
 
-void RolloutSupervisor::assignDevices(const std::pair<entry_id_t, RolloutInfo>& info)
+void RolloutSupervisor::assignDevices(pqxx::connection &conn, const std::pair<entry_id_t, RolloutInfo>& info)
 {
     const auto& [id, ri] = info;
     std::cout << "RolloutManager: assigning " << ri.nextSelectionPercentage << "% more of "
               << ri.arch << " " << ri.type << " on " << ri.platform << " to "
               << id << " release" << std::endl;
 
-    pqxx::work txn(*conn_);
+    pqxx::work txn(conn);
     pqxx::params params;
     params.append(id);
     params.append(ri.type);
@@ -234,14 +219,14 @@ void RolloutSupervisor::assignDevices(const std::pair<entry_id_t, RolloutInfo>& 
     txn.commit();
 }
 
-void RolloutSupervisor::updateCanary(const std::pair<entry_id_t, RolloutInfo>& info)
+void RolloutSupervisor::updateCanary(pqxx::connection &conn, const std::pair<entry_id_t, RolloutInfo>& info)
 {
     const auto& [id, ri] = info;
     std::cout << "RolloutManager: updating percentage in "
               << id << " to "
               << ri.inRolloutPercentage << "%" << std::endl;
 
-    pqxx::work txn(*conn_);
+    pqxx::work txn(conn);
     pqxx::params params;
     params.append(id);
     params.append(ri.inRolloutPercentage);
@@ -250,9 +235,9 @@ void RolloutSupervisor::updateCanary(const std::pair<entry_id_t, RolloutInfo>& i
     txn.commit();
 }
 
-void RolloutSupervisor::commitCanary(entry_id_t id)
+void RolloutSupervisor::commitCanary(pqxx::connection &conn, entry_id_t id)
 {
-    pqxx::work txn(*conn_);
+    pqxx::work txn(conn);
     pqxx::params params;
     params.append(id);
 
@@ -260,9 +245,9 @@ void RolloutSupervisor::commitCanary(entry_id_t id)
     txn.commit();
 }
 
-void RolloutSupervisor::removeAssignments(entry_id_t id)
+void RolloutSupervisor::removeAssignments(pqxx::connection &conn, entry_id_t id)
 {
-    pqxx::work txn(*conn_);
+    pqxx::work txn(conn);
     pqxx::params params;
     params.append(id);
 
@@ -273,10 +258,10 @@ void RolloutSupervisor::removeAssignments(entry_id_t id)
               << " rows from release_assignment table" << std::endl;
 }
 
-void RolloutSupervisor::setReleasesInactive(const std::pair<entry_id_t, RolloutInfo> &info)
+void RolloutSupervisor::setReleasesInactive(pqxx::connection &conn, const std::pair<entry_id_t, RolloutInfo> &info)
 {
     const auto& [id, ri] = info;
-    pqxx::work txn(*conn_);
+    pqxx::work txn(conn);
     pqxx::params params;
     params.append(id);
     params.append(ri.type);

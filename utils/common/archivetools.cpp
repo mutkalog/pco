@@ -1,6 +1,4 @@
-#include "archive.h"
-
-Archive::Archive() {}
+#include "archivetools.h"
 
 #include <iostream>
 #include <filesystem>
@@ -167,7 +165,6 @@ int extract(const uint8_t *buffer, size_t size, const char* outdir) {
 
 namespace fs = std::filesystem;
 
-// write callback для libarchive — дописывает данные в vector<uint8_t>
 static la_ssize_t write_callback(struct archive* a, void* client_data, const void* buff, size_t length)
 {
     auto out = static_cast<std::vector<uint8_t>*>(client_data);
@@ -176,7 +173,6 @@ static la_ssize_t write_callback(struct archive* a, void* client_data, const voi
     return static_cast<la_ssize_t>(length);
 }
 
-// простые no-op open/close callbacks
 static int open_callback(struct archive* a, void* client_data) { (void)a; (void)client_data; return ARCHIVE_OK; }
 static int close_callback(struct archive* a, void* client_data) { (void)a; (void)client_data; return ARCHIVE_OK; }
 
@@ -187,11 +183,9 @@ int create_archive_from_paths(const std::vector<std::string>& paths, std::vector
     struct archive* a = archive_write_new();
     if (!a) return ARCHIVE_FATAL;
 
-    // tar format + gzip filter
     archive_write_add_filter_gzip(a);
-    archive_write_set_format_pax_restricted(a); // совместимый tar
+    archive_write_set_format_pax_restricted(a);
 
-    // Открываем с callback-ами, client_data = &out
     if (archive_write_open(a, &out, open_callback, write_callback, close_callback) != ARCHIVE_OK) {
         archive_write_free(a);
         return ARCHIVE_FATAL;
@@ -200,16 +194,13 @@ int create_archive_from_paths(const std::vector<std::string>& paths, std::vector
     for (const auto& path_str : paths) {
         fs::path p(path_str);
 
-        // Пропускаем несуществующие и не-regular файлы
         std::error_code ec;
         if (!fs::exists(p, ec) || !fs::is_regular_file(p, ec)) {
-            // можно вернуть ошибку или просто пропустить; здесь возвращаем предупреждение
             archive_write_close(a);
             archive_write_free(a);
             return ARCHIVE_WARN;
         }
 
-        // Получаем метаинфу
         struct stat st;
         if (stat(p.c_str(), &st) != 0) {
             archive_write_close(a);
@@ -217,7 +208,6 @@ int create_archive_from_paths(const std::vector<std::string>& paths, std::vector
             return ARCHIVE_WARN;
         }
 
-        // Создаём запись
         struct archive_entry* entry = archive_entry_new();
         if (!entry) {
             archive_write_close(a);
@@ -225,7 +215,6 @@ int create_archive_from_paths(const std::vector<std::string>& paths, std::vector
             return ARCHIVE_FATAL;
         }
 
-        // Имя внутри архива — только filename. Заменить на p.string() если хотите сохранить путь.
         std::string entry_name = p.filename().string();
         archive_entry_set_pathname(entry, entry_name.c_str());
         archive_entry_set_size(entry, static_cast<la_int64_t>(st.st_size));
@@ -235,14 +224,12 @@ int create_archive_from_paths(const std::vector<std::string>& paths, std::vector
 
         int r = archive_write_header(a, entry);
         if (r < ARCHIVE_OK) {
-            // ошибка заголовка
             archive_entry_free(entry);
             archive_write_close(a);
             archive_write_free(a);
             return r;
         }
 
-        // Если есть содержимое — читаем и пишем
         if (st.st_size > 0) {
             std::ifstream ifs(p, std::ios::binary);
             if (!ifs) {
@@ -279,7 +266,6 @@ int create_archive_from_paths(const std::vector<std::string>& paths, std::vector
         }
     }
 
-    // Завершаем архив
     archive_write_close(a);
     archive_write_free(a);
 

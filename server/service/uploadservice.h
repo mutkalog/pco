@@ -5,8 +5,8 @@
 #include <vector>
 #include <filesystem>
 #include <optional>
+#include "connectionspull.h"
 
-#include "database.h"
 #include "servercontext.h"
 
 
@@ -27,14 +27,17 @@ struct ReleasesTableEntry
 class UploadService
 {
 public:
-    UploadService() : conn_(Database::instance().getConnection()) {}
-    void upload(ServerContext *sc, std::optional<int> canaryPercentage, const std::string& manifest, const std::string& archive);
+    void upload(std::shared_ptr<ServerContext> &sc,
+                std::optional<int> canaryPercentage,
+                int requiredTimeMinutes,
+                const std::string &manifest,
+                const std::string &archive);
 
 private:
     void parseManifest(const std::string &raw, ReleasesTableEntry &entry);
     void parseFiles(const std::string &raw, ReleasesTableEntry &entry, const fs::path &bufDir, fs::path &storagePath);
-    void commit(ServerContext *sc, std::optional<int> canaryPercentage, ReleasesTableEntry &entry, const fs::path &bufDir);
-    std::unique_ptr<pqxx::connection> conn_;
+    void commit(std::shared_ptr<ServerContext> &sc, std::optional<int> canaryPercentage, int requiredTimeMinutes, ReleasesTableEntry &entry, const fs::path &bufDir);
+    ConnectionsPool cp_;
 };
 
 

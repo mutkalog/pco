@@ -8,7 +8,7 @@
 class ManifestController final : public Controller
 {
 public:
-    ManifestController(ServerContext* sc) : Controller(sc) {}
+    ManifestController(std::shared_ptr<ServerContext>& sc) : Controller(sc) {}
     virtual void registerRoute(httplib::Server& serv) override;
 
 private:

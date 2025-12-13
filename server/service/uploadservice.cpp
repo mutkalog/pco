@@ -1,5 +1,5 @@
 #include "uploadservice.h"
-#include "../../utils/common/archive.h"
+#include "../../utils/common/archivetools.h"
 #include "database.h"
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -38,7 +38,8 @@ namespace {
 
 } // namespace
 
-void UploadService::upload(ServerContext* sc, std::optional<int> canaryPercentage,
+void UploadService::upload(std::shared_ptr<ServerContext>& sc, std::optional<int> canaryPercentage,
+                           int requiredTimeMinutes,
                            const std::string &manifest,
                            const std::string &archive)
 {
@@ -54,7 +55,7 @@ void UploadService::upload(ServerContext* sc, std::optional<int> canaryPercentag
 
         parseManifest(manifest, entry);
         parseFiles(archive, entry, updateBufDir, storagePath);
-        commit(sc, canaryPercentage, entry, updateBufDir);
+        commit(sc, canaryPercentage, requiredTimeMinutes, entry, updateBufDir);
     }
     catch (const pqxx::sql_error& ex)
     {
@@ -112,7 +113,6 @@ void UploadService::parseFiles(const std::string &raw, ReleasesTableEntry &entry
     std::vector<uint8_t> data(raw.size());
     std::memcpy(data.data(), raw.data(), raw.size());
 
-
     fs::remove_all(bufDir);
 
     if (fs::create_directories(bufDir) == false && fs::exists(bufDir) == false)
@@ -142,67 +142,83 @@ void UploadService::parseFiles(const std::string &raw, ReleasesTableEntry &entry
     }
 }
 
-void UploadService::commit(ServerContext* sc, std::optional<int> canaryPercentage, ReleasesTableEntry &entry, const fs::path& bufDir)
+void UploadService::commit(std::shared_ptr<ServerContext>& sc,
+                           std::optional<int> canaryPercentage,
+                           int requiredTimeMinutes,
+                           ReleasesTableEntry &entry,
+                           const fs::path& bufDir)
 {
-    if (entry.storagePaths.empty() == true)
+    auto conn = cp_.acquire();
+    try
     {
-        throw std::runtime_error("Cannot update");
+        if (entry.storagePaths.empty() == true)
+        {
+            throw std::runtime_error("Cannot update");
+        }
+
+        pqxx::work txn(*conn);
+
+        std::string paths = toPgArray(entry.storagePaths);
+        pqxx::params params;
+        params.append(entry.manifest);
+        params.append(entry.signature);
+        params.append(entry.version);
+        params.append(entry.type);
+        params.append(entry.platform);
+        params.append(entry.arch);
+        params.append(paths);
+        params.append(canaryPercentage.has_value());
+        params.append(canaryPercentage.has_value() == true ? *canaryPercentage : 0);
+        params.append(requiredTimeMinutes);
+
+        pqxx::result res = txn.exec(
+            "INSERT INTO releases (manifest_raw, signature_raw, version, device_type, platform, arch, file_paths, is_canary, canary_percent, installation_time) "
+            "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) "
+            "RETURNING id;", params);
+
+        if (res.empty() == true)
+            throw std::runtime_error("Empty result on INSERT INTO releases");
+
+        auto newId = res[0]["id"].as<uint64_t>();
+
+
+        const auto& map = entry.bufferPathToStoragePath;
+        for (size_t i = 0; i != map.size(); ++i)
+        {
+            fs::copy(map[i].first, map[i].second);
+
+            ///@todo убрать
+            std::cout << entry.storagePaths[i] << std::endl;
+        }
+        std::cout << "Files successfuly transfered" << std::endl;
+
+        txn.commit();
+
+        fs::remove_all(bufDir);
+
+        auto& rollouts = sc->staging.rollouts;
+
+        std::lock_guard<std::mutex> lg(rollouts.mtx);
+        static_cast<void>(lg);
+
+        RolloutInfo ri {
+            entry.type,
+            entry.platform,
+            entry.arch,
+            canaryPercentage.has_value() == true,
+            canaryPercentage.has_value() == true ? *canaryPercentage : 0,
+            canaryPercentage.has_value() == true ? *canaryPercentage : 0,
+        };
+
+        rollouts.releaseToInfoMap.insert({newId, std::move(ri)});
+        rollouts.cv.notify_all();
+
+        cp_.release(std::move(conn));
     }
-
-    pqxx::work txn(*conn_);
-
-    std::string paths = toPgArray(entry.storagePaths);
-    pqxx::params params;
-    params.append(entry.manifest);
-    params.append(entry.signature);
-    params.append(entry.version);
-    params.append(entry.type);
-    params.append(entry.platform);
-    params.append(entry.arch);
-    params.append(paths);
-    params.append(canaryPercentage.has_value());
-    params.append(canaryPercentage.has_value() == true ? *canaryPercentage : 0);
-
-    pqxx::result res = txn.exec(
-        "INSERT INTO releases (manifest_raw, signature_raw, version, device_type, platform, arch, file_paths, is_canary, canary_percent) "
-        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) "
-        "RETURNING id;", params);
-
-    if (res.empty() == true)
-        throw std::runtime_error("Empty result on INSERT INTO releases");
-
-    auto newId = res[0]["id"].as<uint64_t>();
-
-
-    const auto& map = entry.bufferPathToStoragePath;
-    for (size_t i = 0; i != map.size(); ++i)
+    catch (...)
     {
-        fs::copy(map[i].first, map[i].second);
-
-        ///@todo убрать
-        std::cout << entry.storagePaths[i] << std::endl;
+        cp_.release(std::move(conn));
+        throw;
     }
-    std::cout << "Files successfuly transfered" << std::endl;
-
-    txn.commit();
-
-    fs::remove_all(bufDir);
-
-    auto& rollouts = sc->data->staging.rollouts;
-
-    std::lock_guard<std::mutex> lg(rollouts.mtx);
-    static_cast<void>(lg);
-
-    RolloutInfo ri {
-        entry.type,
-        entry.platform,
-        entry.arch,
-        canaryPercentage.has_value() == true,
-        canaryPercentage.has_value() == true ? *canaryPercentage : 0,
-        canaryPercentage.has_value() == true ? *canaryPercentage : 0,
-    };
-
-    rollouts.releaseToInfoMap.insert({newId, std::move(ri)});
-    rollouts.cv.notify_all();
 }
 

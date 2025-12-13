@@ -12,15 +12,9 @@ using json = nlohmann::ordered_json;
 class ManifestService
 {
 public:
-    // ManifestService() : conn_(Database::instance().getConnection()) {}
-    // ManifestService()
-    //     : cp_(DB_CONNECTIONS_COUNT)
-    // {}
-
     json getManifest(uint64_t devId, const std::string &devType,
                      const std::string &platform, const std::string &arch);
 private:
-    // std::unique_ptr<pqxx::connection> conn_;
     ConnectionsPool cp_;
 };
 

@@ -7,12 +7,12 @@
 class Controller
 {
 public:
-    Controller(ServerContext* sc) : sc_(sc) {}
+    Controller(std::shared_ptr<ServerContext>& sc) : sc_(sc) {}
     virtual ~Controller() = default;
     virtual void registerRoute(httplib::Server& serv) = 0;
 
 protected:
-    ServerContext* sc_;
+    std::shared_ptr<ServerContext> sc_;
 };
 
 #endif // CONTROLLER_H

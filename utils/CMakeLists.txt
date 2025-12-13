@@ -13,10 +13,11 @@ set(ARCHIVE_LIB /usr/lib/x86_64-linux-gnu/libarchive.a)
 
 
 add_library(common STATIC
-  utils.cpp
-  utils.h
-  archive.h archive.cpp
-  messagequeue.h
+  common/utils.cpp
+  common/utils.h
+  common/archivetools.h common/archivetools.cpp
+  common/messagequeue.h
+  common/task.h
 )
 
 target_link_libraries(common PRIVATE

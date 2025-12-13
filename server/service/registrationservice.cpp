@@ -2,6 +2,12 @@
 #include "database.h"
 #include <iostream>
 
+namespace {
+constexpr std::string_view REGISTER_DEVICE_SQL =
+    "INSERT INTO devices (device_type, platform, arch, poling_interval) "
+    "VALUES ($1, $2, $3, $4) "
+    "RETURNING id;";
+}
 
 
 uint64_t RegistrationService::registerDevice(const json& body)
@@ -24,11 +30,7 @@ uint64_t RegistrationService::registerDevice(const json& body)
         params.append(arch);
         params.append(interval);
 
-        pqxx::result res = txn.exec(
-            "INSERT INTO devices (device_type, platform, arch, poling_interval) "
-            "VALUES ($1, $2, $3, $4) "
-            "RETURNING id;",
-            params);
+        pqxx::result res = txn.exec(REGISTER_DEVICE_SQL, params);
 
         txn.commit();
 
