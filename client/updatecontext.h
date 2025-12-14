@@ -1,8 +1,9 @@
 #ifndef UPDATECONTEXT_H
 #define UPDATECONTEXT_H
 
-#include <httplib.h>
-#include <openssl/ssl.h>
+// #include <httplib.h>
+// #include <openssl/ssl.h>
+#include "sslhttpclient.h"
 
 #include "artifactmanifest.h"
 #include "deviceinfo.h"
@@ -31,7 +32,8 @@ struct UpdateContext
     fs::path prevManifestPath;
     ArtifactManifest manifest;
     std::unique_ptr<DeviceInfo> devinfo;
-    std::unique_ptr<httplib::SSLClient> client;
+    std::unique_ptr<IHttpClient> client;
+    // std::unique_ptr<httplib::SSLClient> client;
     std::pair<int, std::string> reportMessage;
     std::unordered_map<fs::path, fs::path> pathToRollbackPathMap;
     BusyResources busyResources;

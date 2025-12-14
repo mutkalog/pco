@@ -1,7 +1,7 @@
 #include "verifyingstateexecutor.h"
 #include "preparingstateexecutor.h"
 #include "finalizingstateexecutor.h"
-#include "../../../utils/common/utils.h"
+#include "common/utils.h"
 
 void VerifyingStateExecutor::execute(StateMachine &sm)
 {

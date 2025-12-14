@@ -26,9 +26,7 @@ UpdateContext::UpdateContext()
         std::string host       = devinfo->serverUrl();
         int         port       = devinfo->serverPort();
 
-        client = std::make_unique<httplib::SSLClient>(host, port, clientCert, clientKey);
-        client->set_ca_cert_path(caCert);
-        client->enable_server_certificate_verification(true);
+        client = std::make_unique<SslHttpClient>(host, port, clientCert, clientKey, caCert);
 
         updateEnvironmentVars();
 

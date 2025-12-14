@@ -1,7 +1,7 @@
 #ifndef INSTALLINGSTATEEXECUTOR_H
 #define INSTALLINGSTATEEXECUTOR_H
 
-#include "ota/updatecontext.h"
+#include "updatecontext.h"
 #include "stateexecutor.h"
 #include <filesystem>
 

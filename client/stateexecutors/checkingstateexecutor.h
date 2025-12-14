@@ -11,14 +11,14 @@ using json = nlohmann::ordered_json;
 
 class DeviceInfo;
 
-class CheckingStateExecutor final : public StateExecutor
+class CheckingStateExecutor : public StateExecutor
 {
 public:
     static CheckingStateExecutor& instance();
 
     virtual void execute(StateMachine& sm) override;
 
-private:
+protected:
     void process(StateMachine& sm, const std::string &responseBody);
     bool verificateRelease(const ArtifactManifest& received, const DeviceInfo* current) const;
     bool compareVersions(const std::string& received, const std::string& current) const;

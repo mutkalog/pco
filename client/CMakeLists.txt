@@ -1,31 +1,35 @@
-
-
 # find_library(ARCHIVE_LIB archive)
 
 set(CMAKE_EXE_LINKER_FLAGS "-static")
 set(ARCHIVE_LIB /usr/lib/x86_64-linux-gnu/libarchive.a)
 
 
-add_executable(pco-client-ota ota/main.cpp
-    ota/statemachine.h ota/statemachine.cpp
-    ota/stateexecutors/checkingstateexecutor.h ota/stateexecutors/checkingstateexecutor.cpp
-    ota/artifactmanifest.h  ota/artifactmanifest.cpp
-    ota/stateexecutors/stateexecutor.h ota/stateexecutors/stateexecutor.cpp
-    ota/stateexecutors/idlestateexecutor.h ota/stateexecutors/idlestateexecutor.cpp
-    ota/stateexecutors/dowloadstateexecutor.h ota/stateexecutors/dowloadstateexecutor.cpp
-    ota/stateexecutors/verifyingstateexecutor.h ota/stateexecutors/verifyingstateexecutor.cpp
-    ota/stateexecutors/preparingstateexecutor.h ota/stateexecutors/preparingstateexecutor.cpp
-    ota/stateexecutors/installingstateexecutor.h ota/stateexecutors/installingstateexecutor.cpp
-    ota/deviceinfo.h ota/deviceinfo.cpp
-    ota/updatecontext.h ota/updatecontext.cpp
-    ota/stateexecutors/finalizingstateexecutor.h ota/stateexecutors/finalizingstateexecutor.cpp
-    ota/stateexecutors/registrationexecutor.h ota/stateexecutors/registrationexecutor.cpp
-    ota/stateexecutors/committingstateexecutor.h ota/stateexecutors/committingstateexecutor.cpp
+
+add_library(client-core
+    statemachine.h statemachine.cpp
+    stateexecutors/checkingstateexecutor.h stateexecutors/checkingstateexecutor.cpp
+    artifactmanifest.h  artifactmanifest.cpp
+    stateexecutors/stateexecutor.h stateexecutors/stateexecutor.cpp
+    stateexecutors/idlestateexecutor.h stateexecutors/idlestateexecutor.cpp
+    stateexecutors/dowloadstateexecutor.h stateexecutors/dowloadstateexecutor.cpp
+    stateexecutors/verifyingstateexecutor.h stateexecutors/verifyingstateexecutor.cpp
+    stateexecutors/preparingstateexecutor.h stateexecutors/preparingstateexecutor.cpp
+    stateexecutors/installingstateexecutor.h stateexecutors/installingstateexecutor.cpp
+    deviceinfo.h deviceinfo.cpp
+    updatecontext.h updatecontext.cpp
+    stateexecutors/finalizingstateexecutor.h stateexecutors/finalizingstateexecutor.cpp
+    stateexecutors/registrationexecutor.h stateexecutors/registrationexecutor.cpp
+    stateexecutors/committingstateexecutor.h stateexecutors/committingstateexecutor.cpp
+    interfaces/ihttpclient.h
+    sslhttpclient.h
 )
 
-target_compile_definitions(pco-client-ota PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
 
-target_link_libraries(pco-client-ota PRIVATE
+target_compile_definitions(client-core PUBLIC CPPHTTPLIB_OPENSSL_SUPPORT)
+
+add_executable(pco-client-ota main.cpp)
+target_link_libraries(pco-client-ota PUBLIC
+    client-core
     common
     gmp
     nettle
@@ -41,6 +45,7 @@ target_link_libraries(pco-client-ota PRIVATE
     acl
 )
 
+add_subdirectory(tests/client-test)
 
 include(GNUInstallDirs)
 install(TARGETS pco-client-ota

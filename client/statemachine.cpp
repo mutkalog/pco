@@ -3,15 +3,15 @@
 
 #include <fstream>
 
-#include <ota/stateexecutors/registrationexecutor.h>
-#include <ota/stateexecutors/idlestateexecutor.h>
-#include <ota/stateexecutors/checkingstateexecutor.h>
-#include <ota/stateexecutors/verifyingstateexecutor.h>
-#include <ota/stateexecutors/dowloadstateexecutor.h>
-#include <ota/stateexecutors/preparingstateexecutor.h>
-#include <ota/stateexecutors/installingstateexecutor.h>
-#include <ota/stateexecutors/committingstateexecutor.h>
-#include <ota/stateexecutors/finalizingstateexecutor.h>
+#include "stateexecutors/registrationexecutor.h"
+#include "stateexecutors/idlestateexecutor.h"
+#include "stateexecutors/checkingstateexecutor.h"
+#include "stateexecutors/verifyingstateexecutor.h"
+#include "stateexecutors/dowloadstateexecutor.h"
+#include "stateexecutors/preparingstateexecutor.h"
+#include "stateexecutors/installingstateexecutor.h"
+#include "stateexecutors/committingstateexecutor.h"
+#include "stateexecutors/finalizingstateexecutor.h"
 
 namespace {
 const fs::path STATE_FILE = "/var/pco/state.json";

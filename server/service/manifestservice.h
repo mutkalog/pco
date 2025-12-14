@@ -1,10 +1,8 @@
 #ifndef MANIFESTSERVICE_H
 #define MANIFESTSERVICE_H
 
-// #include "database.h"
 #include "connectionspull.h"
 #include <nlohmann/json.hpp>
-
 
 
 using json = nlohmann::ordered_json;

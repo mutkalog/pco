@@ -4,7 +4,6 @@
 using json = nlohmann::ordered_json;
 
 
-
 void RegistrationController::registerRoute(httplib::Server &serv)
 {
     serv.Post("/register", [&](const httplib::Request &req, httplib::Response& res) {
