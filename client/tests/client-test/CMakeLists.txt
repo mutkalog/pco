@@ -33,6 +33,7 @@ add_executable(client-tests main.cpp
 target_link_libraries(client-tests PRIVATE
   client-core
   common
+  PkgConfig::XML2
   gmp
   nettle
   hogweed
