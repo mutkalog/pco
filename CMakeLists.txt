@@ -15,6 +15,14 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(httplib)
 
 FetchContent_Declare(
+  libpqxx
+  GIT_REPOSITORY https://github.com/jtv/libpqxx.git
+  GIT_TAG        7.9.1
+)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(libpqxx)
+
+FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/065127f1e4b46c5f14fc73cf8d323c221f9dc68e.zip
 )
