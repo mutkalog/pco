@@ -48,6 +48,7 @@ target_link_libraries(server-app PUBLIC
     ssl
     crypto
     pqxx
+    pq
 )
 
 add_subdirectory(tests/server-test)

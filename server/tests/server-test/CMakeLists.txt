@@ -36,6 +36,7 @@ target_link_libraries(server-tests PRIVATE
   server-core
   common
   pqxx
+  pq
   gmp
   nettle
   hogweed
