@@ -1,0 +1,65 @@
+name: PCO update CI
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+          libarchive-dev \
+          libicu-dev pkg-config \
+          cmake build-essential \
+          libgmp-dev nettle-dev libxml2-dev \
+          zlib1g-dev libbz2-dev liblzma-dev libzstd-dev liblz4-dev \
+          libssl-dev libacl1-dev libpq-dev nlohmann-json3-dev pkg-config
+
+      - name: Install libpqxx 7.10
+        run: |
+          git clone --branch 7.10.0 --depth 1 https://github.com/jtv/libpqxx.git
+          cd libpqxx
+          mkdir -p build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+          make -j$(nproc)
+          sudo make install
+          sudo ldconfig 
+          pkg-config --modversion libpqxx
+
+      - name: Start Docker Compose
+        run: docker compose -f server/docker-compose.test.yml up -d
+
+      - name: Wait for Postgres
+        run: |
+          echo "Waiting for Postgres to be healthy..."
+          until [ "$(docker inspect --format='{{.State.Health.Status}}' pco_test_db)" == "healthy" ]; do
+            sleep 2
+          done
+
+      - name: Configure CMake
+        run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Project
+        run: cmake --build build --config Release -j $(nproc)
+
+      - name: Run Client Tests
+        working-directory: build/client/tests/client-test
+        run: ctest --output-on-failure
+
+      - name: Run Server Tests
+        working-directory: build/server/tests/server-test
+        run: ctest --output-on-failure
+
+      - name: Stop Docker Compose
+        if: always()
+        run: docker compose -f server/docker-compose.test.yml down
