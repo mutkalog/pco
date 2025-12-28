@@ -5,11 +5,11 @@ services:
     image: postgres:15
     container_name: pco_test_db
     ports:
-      - "5433:5432"  # Пробрасываем внешний порт 5433 на внутренний 5432
+      - "5433:5432"
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_DB: postgres         # База по умолчанию, к которой подключится твой код для создания pco_test
-      POSTGRES_HOST_AUTH_METHOD: trust # Разрешаем вход без пароля (как в твоем коде)
+      POSTGRES_DB: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
