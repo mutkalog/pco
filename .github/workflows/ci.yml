@@ -21,7 +21,7 @@ jobs:
             cmake build-essential \
             libgmp-dev nettle-dev libxml2-dev \
             zlib1g-dev libbz2-dev liblzma-dev libzstd-dev liblz4-dev \
-            libssl-dev libacl1-dev libpqxx-dev libpq-dev
+            libssl-dev libacl1-dev libpqxx-dev libpq-dev nlohmann-json3-dev
 
       - name: Start Docker Compose
         run: docker compose -f server/docker-compose.test.yml up -d
