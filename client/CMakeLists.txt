@@ -51,6 +51,9 @@ add_executable(client-app main.cpp)
 target_link_libraries(client-app PUBLIC
     client-core
     common
+    xml2
+    icuuc
+    icudata
     gmp
     nettle
     hogweed
