@@ -33,7 +33,7 @@ jobs:
           cmake .. -DCMAKE_BUILD_TYPE=Release
           make -j$(nproc)
           sudo make install
-          sudo ldconfig                    # важно, чтобы динамический линкер увидел /usr/local/lib
+          sudo ldconfig 
           pkg-config --modversion libpqxx
 
       - name: Start Docker Compose

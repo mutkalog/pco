@@ -30,24 +30,38 @@ add_executable(client-tests main.cpp
   stateexecutors/finalizingstateexecutor_test.cpp
 )
 
-target_link_libraries(client-tests PRIVATE
-  client-core
-  common
-  PkgConfig::XML2
-  gmp
-  nettle
-  hogweed
-  xml2
-  z
-  bz2
-  lzma
-  zstd
-  lz4
-  ssl
-  crypto
-  acl
-  GTest::gtest_main
-  GTest::gmock_main
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBXML2 REQUIRED libxml-2.0)
+
+execute_process(
+    COMMAND pkg-config --libs --static libxml-2.0
+    OUTPUT_VARIABLE LIBXML2_STATIC_LIBS
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+find_package(Threads REQUIRED)
+
+target_link_libraries(client-tests PUBLIC
+    client-core
+    common
+    gmp
+    nettle
+    hogweed
+    bz2
+    zstd
+    lz4
+    ssl
+    crypto
+    acl
+    ${LIBXML2_STATIC_LIBS}
+    z
+    lzma
+    bz2
+    Threads::Threads
+    dl
+    m
+    GTest::gtest_main
+    GTest::gmock_main
 )
 
 target_compile_options(client-tests PRIVATE --coverage -O0 -g)
