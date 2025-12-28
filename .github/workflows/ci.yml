@@ -18,21 +18,21 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libarchive-dev \
-            cmake build-essential \
-            libgmp-dev nettle-dev libxml2-dev \
-            zlib1g-dev libbz2-dev liblzma-dev libzstd-dev liblz4-dev \
-            libssl-dev libacl1-dev libpq-dev nlohmann-json3-dev 
+          libarchive-dev \
+          cmake build-essential \
+          libgmp-dev nettle-dev libxml2-dev \
+          zlib1g-dev libbz2-dev liblzma-dev libzstd-dev liblz4-dev \
+          libssl-dev libacl1-dev libpq-dev nlohmann-json3-dev pkg-config
 
       - name: Install libpqxx 7.10
         run: |
           git clone --branch 7.10.0 --depth 1 https://github.com/jtv/libpqxx.git
           cd libpqxx
-          mkdir build && cd build
+          mkdir -p build && cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release
           make -j$(nproc)
           sudo make install
-          cd ../..
+          sudo ldconfig                    # важно, чтобы динамический линкер увидел /usr/local/lib
           pkg-config --modversion libpqxx
 
       - name: Start Docker Compose
