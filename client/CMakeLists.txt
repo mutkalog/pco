@@ -1,6 +1,3 @@
-set(CMAKE_EXE_LINKER_FLAGS "-static")
-set(ARCHIVE_LIB /usr/lib/x86_64-linux-gnu/libarchive.a)
-
 add_library(client-core
     core/statemachine.h
     core/statemachine.cpp
@@ -48,38 +45,36 @@ target_compile_definitions(client-core PUBLIC CPPHTTPLIB_OPENSSL_SUPPORT)
 
 add_executable(client-app main.cpp)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(LIBXML2 REQUIRED libxml-2.0)
-
-execute_process(
-    COMMAND pkg-config --libs --static libxml-2.0
-    OUTPUT_VARIABLE LIBXML2_STATIC_LIBS
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-find_package(Threads REQUIRED)
+if(BUILD_STATIC)
+    set(CMAKE_EXE_LINKER_FLAGS "-static")
+    find_library(ARCHIVE_LIB NAMES libarchive.a archive REQUIRED)
+    message(STATIC!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)
+else()
+    find_library(ARCHIVE_LIB NAMES archive REQUIRED)
+    message(NOT STATIC!!!!!!!!!!!!!!!!)
+endif()
 
 target_link_libraries(client-app PUBLIC
     client-core
     common
+    ${ARCHIVE_LIB}
+    xml2
+    icuuc
+    icudata
     gmp
     nettle
     hogweed
-    bz2
-    zstd
-    lz4
     ssl
     crypto
     acl
-    ${LIBXML2_STATIC_LIBS}
     z
-    lzma
     bz2
-    Threads::Threads
+    lzma
+    zstd
+    lz4
     dl
+    pthread
     m
-    GTest::gtest_main
-    GTest::gmock_main
 )
 
 add_subdirectory(tests/client-test)

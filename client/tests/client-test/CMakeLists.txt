@@ -19,7 +19,6 @@ add_executable(client-tests main.cpp
   mocks/statepersistence_mock.h
   mocks/stateexecutor_mock.h
   mocks/httpclient_mock.h
-
   stateexecutors/downloadingstateexecutor_test.cpp
   stateexecutors/verifyingstateexecutor_test.cpp
   stateexecutors/executorsfixturebase.h
@@ -30,38 +29,37 @@ add_executable(client-tests main.cpp
   stateexecutors/finalizingstateexecutor_test.cpp
 )
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(LIBXML2 REQUIRED libxml-2.0)
+if(BUILD_STATIC)
+    set(CMAKE_EXE_LINKER_FLAGS "-static")
+    find_library(ARCHIVE_LIB NAMES libarchive.a archive REQUIRED)
+else()
+    find_library(ARCHIVE_LIB NAMES archive REQUIRED)
+endif()
 
-execute_process(
-    COMMAND pkg-config --libs --static libxml-2.0
-    OUTPUT_VARIABLE LIBXML2_STATIC_LIBS
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+target_link_libraries(client-tests PRIVATE
+  client-core
+  common
+  ${ARCHIVE_LIB}
+  xml2
+  icuuc
+  icudata
+  gmp
+  nettle
+  hogweed
+  ssl
+  crypto
+  acl
+  z
+  bz2
+  lzma
+  zstd
+  lz4
+  dl
+  pthread
+  m
 
-find_package(Threads REQUIRED)
-
-target_link_libraries(client-tests PUBLIC
-    client-core
-    common
-    gmp
-    nettle
-    hogweed
-    bz2
-    zstd
-    lz4
-    ssl
-    crypto
-    acl
-    ${LIBXML2_STATIC_LIBS}
-    z
-    lzma
-    bz2
-    Threads::Threads
-    dl
-    m
-    GTest::gtest_main
-    GTest::gmock_main
+  GTest::gtest_main
+  GTest::gmock_main
 )
 
 target_compile_options(client-tests PRIVATE --coverage -O0 -g)

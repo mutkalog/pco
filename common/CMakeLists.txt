@@ -5,19 +5,18 @@ project(utils LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_EXE_LINKER_FLAGS "-static")
-
-find_library(ARCHIVE_LIB NAMES libarchive.a archive)
-
-if(NOT ARCHIVE_LIB)
-    message(FATAL_ERROR "libarchive.a not found!")
+if(BUILD_STATIC)
+    set(CMAKE_EXE_LINKER_FLAGS "-static")
+    find_library(ARCHIVE_LIB NAMES libarchive.a archive REQUIRED)
+else()
+    find_library(ARCHIVE_LIB NAMES archive REQUIRED)
 endif()
 
 add_library(common STATIC
   sslutils.cpp
   sslutils.h
-  archivetools.h archivetools.cpp
-
+  archivetools.h
+  archivetools.cpp
   task.h
   interfaces/iconfig.h
   interfaces/icryptoutils.h
@@ -42,10 +41,10 @@ target_link_libraries(common PRIVATE
   nettle
   hogweed
   xml2
-  GTest::gtest_main
-  GTest::gmock_main
 )
 
-target_link_options(common PRIVATE -static)
-
 target_compile_definitions(common PRIVATE UTILS_LIBRARY)
+
+if(BUILD_STATIC)
+    target_link_options(common PRIVATE -static)
+endif()

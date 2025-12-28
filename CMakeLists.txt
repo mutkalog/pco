@@ -20,6 +20,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
+set(BUILD_STATIC OFF CACHE BOOL "Build statically linked binaries" FORCE)
+
 include_directories(${httplib_SOURCE_DIR})
 
 include_directories("common")
