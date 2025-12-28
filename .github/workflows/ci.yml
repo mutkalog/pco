@@ -18,6 +18,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            libarchive-dev \
             cmake build-essential \
             libgmp-dev nettle-dev libxml2-dev \
             zlib1g-dev libbz2-dev liblzma-dev libzstd-dev liblz4-dev \
