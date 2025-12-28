@@ -1,34 +1,54 @@
-# find_library(ARCHIVE_LIB archive)
-
 set(CMAKE_EXE_LINKER_FLAGS "-static")
 set(ARCHIVE_LIB /usr/lib/x86_64-linux-gnu/libarchive.a)
 
-
-
 add_library(client-core
-    statemachine.h statemachine.cpp
-    stateexecutors/checkingstateexecutor.h stateexecutors/checkingstateexecutor.cpp
-    artifactmanifest.h  artifactmanifest.cpp
-    stateexecutors/stateexecutor.h stateexecutors/stateexecutor.cpp
-    stateexecutors/idlestateexecutor.h stateexecutors/idlestateexecutor.cpp
-    stateexecutors/dowloadstateexecutor.h stateexecutors/dowloadstateexecutor.cpp
-    stateexecutors/verifyingstateexecutor.h stateexecutors/verifyingstateexecutor.cpp
-    stateexecutors/preparingstateexecutor.h stateexecutors/preparingstateexecutor.cpp
-    stateexecutors/installingstateexecutor.h stateexecutors/installingstateexecutor.cpp
-    deviceinfo.h deviceinfo.cpp
-    updatecontext.h updatecontext.cpp
-    stateexecutors/finalizingstateexecutor.h stateexecutors/finalizingstateexecutor.cpp
-    stateexecutors/registrationexecutor.h stateexecutors/registrationexecutor.cpp
-    stateexecutors/committingstateexecutor.h stateexecutors/committingstateexecutor.cpp
-    interfaces/ihttpclient.h
-    sslhttpclient.h
+    core/statemachine.h
+    core/statemachine.cpp
+    core/stateexecutors/checkingstateexecutor.h
+    core/stateexecutors/checkingstateexecutor.cpp
+    core/artifactmanifest.h
+    core/artifactmanifest.cpp
+    core/stateexecutors/stateexecutor.h
+    core/stateexecutors/stateexecutor.cpp
+    core/stateexecutors/idlestateexecutor.h
+    core/stateexecutors/idlestateexecutor.cpp
+    core/stateexecutors/dowloadingstateexecutor.h
+    core/stateexecutors/dowloadingstateexecutor.cpp
+    core/stateexecutors/verifyingstateexecutor.h
+    core/stateexecutors/verifyingstateexecutor.cpp
+    core/stateexecutors/preparingstateexecutor.h
+    core/stateexecutors/preparingstateexecutor.cpp
+    core/stateexecutors/installingstateexecutor.h
+    core/stateexecutors/installingstateexecutor.cpp
+    core/deviceconfig.h
+    core/deviceconfig.cpp
+    core/updatecontext.h
+    core/updatecontext.cpp
+    core/stateexecutors/finalizingstateexecutor.h
+    core/stateexecutors/finalizingstateexecutor.cpp
+    core/stateexecutors/registrationexecutor.h
+    core/stateexecutors/registrationexecutor.cpp
+    core/stateexecutors/committingstateexecutor.h
+    core/stateexecutors/committingstateexecutor.cpp
+    core/interfaces/ihttpclient.h
+    core/sslhttpclient.h
+    core/interfaces/istatepersistance.h
+    core/statepersistence.h
+    core/statepersistence.cpp
+    core/interfaces/iclientconfig.h
+    core/interfaces/iartifactmanifest.h
+    core/interfaces/istateexecutor.h
+    core/interfaces/isystemcalls.h
+    core/systemcalls.h
 )
 
-
+target_compile_options(client-core PRIVATE --coverage -O0 -g)
+target_link_libraries(client-core PRIVATE --coverage)
 target_compile_definitions(client-core PUBLIC CPPHTTPLIB_OPENSSL_SUPPORT)
 
-add_executable(pco-client-ota main.cpp)
-target_link_libraries(pco-client-ota PUBLIC
+add_executable(client-app main.cpp)
+
+target_link_libraries(client-app PUBLIC
     client-core
     common
     gmp
@@ -44,11 +64,10 @@ target_link_libraries(pco-client-ota PUBLIC
     crypto
     acl
 )
-
 add_subdirectory(tests/client-test)
 
 include(GNUInstallDirs)
-install(TARGETS pco-client-ota
+install(TARGETS client-app
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )

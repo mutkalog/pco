@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include_directories("../cpp-httplib")
-include_directories("utils")
+include_directories("common")
 include_directories("server")
 include_directories("client")
 
@@ -21,4 +21,4 @@ add_compile_definitions(PROJECT_ROOT_DIR="${CMAKE_SOURCE_DIR}")
 
 add_subdirectory(client)
 add_subdirectory(server)
-add_subdirectory(utils)
+add_subdirectory(common)
