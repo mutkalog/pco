@@ -29,6 +29,27 @@ std::vector<uint8_t> SSLUtils::decodeBase64(const std::string& input)
     return output;
 }
 
+std::string SSLUtils::encodeBase64(const std::vector<uint8_t>& input)
+{
+    BIO* b64Filter = BIO_new(BIO_f_base64());
+    BIO* bio       = BIO_new(BIO_s_mem());
+
+    bio = BIO_push(b64Filter, bio);
+    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
+
+    BIO_write(bio, input.data(), input.size());
+    BIO_flush(bio);
+
+    BUF_MEM* bufferPtr;
+    BIO_get_mem_ptr(bio, &bufferPtr);
+
+    std::string encoded(bufferPtr->data, bufferPtr->length);
+
+    BIO_free_all(bio);
+
+    return encoded;
+}
+
 bool SSLUtils::verifySignature(const std::string &manifest, const std::vector<uint8_t> &signature, const std::string &pubkeyFilePath)
 {
     bool result = false;

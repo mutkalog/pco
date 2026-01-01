@@ -1,10 +1,12 @@
 #ifndef ICLIENTCONFIG_H
 #define ICLIENTCONFIG_H
 
-#include "interfaces/iconfig.h"
+#include <filesystem>
 #include "core/artifactmanifest.h"
 
-class IClientConfig : public IConfig
+namespace fs = std::filesystem;
+
+class IClientConfig
 {
 public:
     virtual ~IClientConfig() = default;
@@ -14,6 +16,9 @@ public:
     virtual void saveNewUpdateInfo(const ArtifactManifest &newManifest) = 0;
     virtual void saveId(uint32_t id) = 0;
 
+    virtual fs::path         certPath()               const = 0;
+    virtual fs::path         keyPath()                const = 0;
+    virtual fs::path         caCertPath()             const = 0;
     virtual std::string      type()                   const = 0;
     virtual std::string      platform()               const = 0;
     virtual std::string      arch()                   const = 0;

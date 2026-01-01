@@ -2,6 +2,8 @@
 #include "core/updatecontext.h"
 #include <spawn.h>
 #include <sys/wait.h>
+#include <stdio.h>
+
 
 void PreparingStateExecutor::execute(StateMachine &sm)
 {
@@ -18,6 +20,7 @@ void PreparingStateExecutor::execute(StateMachine &sm)
 
         if (ctx.syscalls->posix_spawn(&childPid, script.c_str(), nullptr, nullptr, argv, environ) != 0)
         {
+            perror("cannot cannot");
             throw std::runtime_error("Cannot launch prepare.sh");
         }
 

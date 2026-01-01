@@ -34,12 +34,6 @@ void FinalizingStateExecutor::execute(StateMachine &sm)
         }
     });
 
-    bool cleanupOk = safeExec([&]{
-        totalCleanup(ctx);
-        std::cout << "Cleanup was successfully committed" << std::endl;
-    });
-
-    rebootRequired = (cleanupOk == false);
 
     json results;
     auto& devinfo = sm.context.devconf;
@@ -57,21 +51,28 @@ void FinalizingStateExecutor::execute(StateMachine &sm)
 
     results["current_version"] = ctx.manifest.release.version;
 
+    bool cleanupOk = safeExec([&]{
+        totalCleanup(ctx);
+        std::cout << "Cleanup was successfully committed" << std::endl;
+    });
+
+    rebootRequired = (cleanupOk == false);
+
     ctx.manifest.clear();
 
     httplib::Result res;
     std::string     body    = results.dump();
     size_t          counter = 0;
 
-    while (res == nullptr && ++counter < 5)
+    while ((res == nullptr || res->status != httplib::OK_200)
+           && ++counter < 5)
     {
         res = ctx.client->Post("/report", body, "application/json");
         if (counter > 1)
         {
             std::cout << "Server unavailable. "
                          "Trying send result again..." << std::endl;
-            sleep(std::chrono::minutes(1));
-            // std::this_thread::sleep_for(std::chrono::minutes(1));
+            ctx.syscalls->sleep(60);
         }
     }
 
@@ -207,9 +208,3 @@ void FinalizingStateExecutor::totalCleanup(UpdateContext &ctx)
     ctx.recovering = false;
     ctx.rollback   = false;
 }
-
-void FinalizingStateExecutor::sleep(std::chrono::minutes m)
-{
-    std::this_thread::sleep_for(m);
-}
-

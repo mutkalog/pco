@@ -28,7 +28,6 @@ struct Updates
     std::unordered_map<entry_id_t, UpdateInfo> devToReleaseMap;
 };
 
-
 struct RolloutInfo
 {
     std::string type;
@@ -45,7 +44,6 @@ struct Rollouts
     std::condition_variable cv;
     std::unordered_map<entry_id_t, RolloutInfo> releaseToInfoMap;
 };
-
 
 struct Staging
 {

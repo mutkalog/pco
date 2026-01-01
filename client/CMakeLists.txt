@@ -33,7 +33,7 @@ add_library(client-core
     core/statepersistence.h
     core/statepersistence.cpp
     core/interfaces/iclientconfig.h
-    core/interfaces/iartifactmanifest.h
+
     core/interfaces/istateexecutor.h
     core/interfaces/isystemcalls.h
     core/systemcalls.h

@@ -1,7 +1,6 @@
 #ifndef ISTATEPERSISTANCE_H
 #define ISTATEPERSISTANCE_H
 
-#include "core/stateexecutors/stateexecutor.h"
 #include "core/updatecontext.h"
 #include <optional>
 

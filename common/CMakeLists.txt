@@ -41,6 +41,9 @@ target_link_libraries(common PRIVATE
   nettle
   hogweed
   xml2
+
+  GTest::gtest_main
+  GTest::gmock_main
 )
 
 target_compile_definitions(common PRIVATE UTILS_LIBRARY)

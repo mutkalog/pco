@@ -1,13 +1,13 @@
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
+#include <fstream>
 
 #include <mocks/cryptoutils_mock.h>
-#include <tests/client-test/mocks/stateexecutor_mock.h>
-#include <tests/client-test/mocks/statepersistence_mock.h>
-#include <tests/client-test/mocks/deviceinfo_mock.h>
-#include <tests/client-test/mocks/httpclient_mock.h>
-#include <tests/client-test/stateexecutors/executorsfixturebase.h>
-#include <fstream>
+#include <tests/client-test/unit/mocks/stateexecutor_mock.h>
+#include <tests/client-test/unit/mocks/statepersistence_mock.h>
+#include <tests/client-test/unit/mocks/deviceinfo_mock.h>
+#include <tests/client-test/unit/mocks/httpclient_mock.h>
+#include <tests/client-test/unit/stateexecutors/executorsfixturebase.h>
 
 #include "core/stateexecutors/installingstateexecutor.h"
 

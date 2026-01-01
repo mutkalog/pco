@@ -40,9 +40,8 @@ public:
     void loadFromJson(const nlohmann::json &data);
     nlohmann::json saveInJson() const;
 
-protected:
-    std::vector<uint8_t> rawHashFromString(const std::string& stringHash);
-    std::string stringHashFromRaw(const std::vector<uint8_t>& rawHash) const;
+    static std::vector<uint8_t> rawHashFromString(const std::string& stringHash);
+    static std::string stringHashFromRaw(const std::vector<uint8_t>& rawHash);
 };
 
 inline void ArtifactManifest::clear()

@@ -1,10 +1,10 @@
 #include "registrationexecutor.h"
 
-// #include "idlestateexecutor.h"
-
 
 void RegistrationStateExecutor::execute(StateMachine &sm)
 {
+    auto& ctx = sm.context;
+
     if (sm.context.devconf->id() == 0)
     {
         std::cout << "Unregistred device" << std::endl;
@@ -30,7 +30,7 @@ void RegistrationStateExecutor::execute(StateMachine &sm)
 
                 std::cout << ex.what() << std::endl;
                 std::cout << "Going to sleep for 1 minute" << std::endl;
-                std::this_thread::sleep_for(std::chrono::minutes(1));
+                ctx.syscalls->sleep(60);
             }
         }
 
@@ -61,6 +61,7 @@ void RegistrationStateExecutor::registerDevice(UpdateContext &ctx)
 
     if (res == nullptr)
     {
+        std::cout << "HTTP POST Error: " << res.error() << std::endl;
         throw std::runtime_error("Server unavailable");
     }
 

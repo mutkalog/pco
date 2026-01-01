@@ -1,5 +1,6 @@
 #include "statepersistence.h"
 #include <fstream>
+#include "core/stateexecutors/stateexecutor.h"
 
 
 void StatePersistence::dump(uint32_t state, const UpdateContext &ctx)

@@ -11,7 +11,6 @@ DeviceConfig::DeviceConfig(fs::path confPath, fs::path lastUpdateFile)
     , lastUpdateFile_(lastUpdateFile)
 {}
 
-
 void DeviceConfig::loadConfig()
 {
     std::ifstream configFile(confFile_, std::ios_base::binary);
@@ -93,7 +92,6 @@ void DeviceConfig::loadPrevManifest()
     }
 }
 
-
 void DeviceConfig::saveNewUpdateInfo(const ArtifactManifest& newManifest)
 {
     std::ofstream lastManifestFile(lastUpdateFile_);
@@ -109,7 +107,6 @@ void DeviceConfig::saveNewUpdateInfo(const ArtifactManifest& newManifest)
 
     prevManifest_ = newManifest;
 }
-
 
 void DeviceConfig::saveId(uint32_t id)
 {

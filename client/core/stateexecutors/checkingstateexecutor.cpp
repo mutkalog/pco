@@ -1,6 +1,5 @@
 #include "core/stateexecutors/checkingstateexecutor.h"
 #include "core/statemachine.h"
-#include "sslutils.h"
 
 void CheckingStateExecutor::execute(StateMachine &sm)
 {
@@ -46,7 +45,7 @@ void CheckingStateExecutor::process(StateMachine &sm, const std::string& respons
     std::string          rawManifest      = data["manifest"].get<std::string>();
     json                 signatureInfo    = json::parse(data["signature"].get<std::string>());
     std::string          encodedSignature = signatureInfo["signature"]["value"].get<std::string>();
-    std::vector<uint8_t> signature        = SSLUtils::decodeBase64(encodedSignature);
+    std::vector<uint8_t> signature        = ctx.cryptoUtils->decodeBase64(encodedSignature);
 
     if (ctx.cryptoUtils->verifySignature(
             rawManifest, signature,
@@ -81,7 +80,7 @@ bool CheckingStateExecutor::verificateRelease(const ArtifactManifest &received, 
 
 bool CheckingStateExecutor::compareVersions(const std::string &received, const std::string &current) const
 {
-    if (current.empty()) // first update
+    if (current.empty())
     {
         return true;
     }

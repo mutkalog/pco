@@ -26,6 +26,12 @@ inline SslHttpClient::SslHttpClient(const std::string &host,
 {
     client_.set_ca_cert_path(caCert);
     client_.enable_server_certificate_verification(true);
+
+    if (!client_.is_valid())
+    {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Failed to initialize SSL client");
+    }
 }
 
 inline httplib::Result SslHttpClient::Post(const std::string &path,

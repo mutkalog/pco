@@ -13,6 +13,11 @@ public:
         return SSLUtils::decodeBase64(input);
     }
 
+    std::string encodeBase64(const std::vector<uint8_t>& input) override
+    {
+        return SSLUtils::encodeBase64(input);
+    }
+
     bool verifySignature(const std::string& manifestData,
                          const std::vector<uint8_t>& signature,
                          const std::string& pubkeyFile) override

@@ -28,7 +28,7 @@ void DownloadingStateExecutor::execute(StateMachine &sm)
             {
                 std::cout << "Server unavailable. "
                              "Trying send request again..." << std::endl;
-                sleep(std::chrono::minutes(1));
+                ctx.syscalls->sleep(60);
             }
         }
 
@@ -71,9 +71,4 @@ void DownloadingStateExecutor::process(StateMachine &sm, const std::string &resp
     ctx.busyResources.stagingDirCreated = 1;
 
     sm.transitTo(VERIFYING);
-}
-
-void DownloadingStateExecutor::sleep(std::chrono::minutes m)
-{
-    std::this_thread::sleep_for(m);
 }

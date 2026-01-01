@@ -114,7 +114,6 @@ void InstallingStateExecutor::installAtomic(const fs::path &srcStaging, const fs
     {
         std::cout << "CANNOT fsync " << tmp.string() << std::endl;
         ::close(fd);
-        ///@todo тут нет ec
         throw std::system_error(ec, "cannot open fsync fd");
     }
     ::close(fd);

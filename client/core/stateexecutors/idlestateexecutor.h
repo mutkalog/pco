@@ -4,6 +4,7 @@
 #include "stateexecutor.h"
 #include "../statemachine.h"
 
+
 class IdleStateExecutor final : public StateExecutor
 {
 public:

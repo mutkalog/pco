@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 #include "core/statemachine.h"
-#include "tests/client-test/mocks/stateexecutor_mock.h"
+#include "tests/client-test/unit/mocks/stateexecutor_mock.h"
 
 class ExecutorsFixtureBase : public testing::Test
 {
