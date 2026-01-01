@@ -12,7 +12,6 @@ public:
 
 protected:
     virtual void process(StateMachine& sm, const std::string &responseBody);
-    // virtual void sleep(std::chrono::minutes m);
 };
 
 #endif // DOWLOADINGSTATEEXECUTOR_H

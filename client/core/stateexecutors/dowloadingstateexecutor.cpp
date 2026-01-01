@@ -72,8 +72,3 @@ void DownloadingStateExecutor::process(StateMachine &sm, const std::string &resp
 
     sm.transitTo(VERIFYING);
 }
-
-// void DownloadingStateExecutor::sleep(std::chrono::minutes m)
-// {
-//     std::this_thread::sleep_for(m);
-// }

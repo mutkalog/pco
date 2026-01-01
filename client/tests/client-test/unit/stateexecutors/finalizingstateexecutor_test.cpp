@@ -69,7 +69,6 @@ public:
     using FinalizingStateExecutor::launchScript;
     using FinalizingStateExecutor::totalCleanup;
 
-    // void sleep(std::chrono::minutes m) override {};
     FinalizingStateExecutorAllPublic() : FinalizingStateExecutor(FINALIZING) {}
 };
 

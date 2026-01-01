@@ -92,7 +92,6 @@ void DeviceConfig::loadPrevManifest()
     }
 }
 
-
 void DeviceConfig::saveNewUpdateInfo(const ArtifactManifest& newManifest)
 {
     std::ofstream lastManifestFile(lastUpdateFile_);
@@ -108,7 +107,6 @@ void DeviceConfig::saveNewUpdateInfo(const ArtifactManifest& newManifest)
 
     prevManifest_ = newManifest;
 }
-
 
 void DeviceConfig::saveId(uint32_t id)
 {
