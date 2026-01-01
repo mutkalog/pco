@@ -1,17 +1,15 @@
 #include "idlestateexecutor.h"
 #include "checkingstateexecutor.h"
 
-#include <chrono>
-#include <thread>
-
 
 void IdleStateExecutor::execute(StateMachine &sm)
 {
+    auto& ctx = sm.context;
     static bool firstTime = true;
 
     if (firstTime == false)
     {
-        std::this_thread::sleep_for(std::chrono::minutes(sm.context.devconf->pollingIntervalMinutes()));
+        ctx.syscalls->sleep(sm.context.devconf->pollingIntervalMinutes() * 60);
     }
 
     firstTime = false;

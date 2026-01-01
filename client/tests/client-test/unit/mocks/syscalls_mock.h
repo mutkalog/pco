@@ -14,6 +14,7 @@ public:
                 const posix_spawnattr_t *attr, char *const argv[],
                 char *const env[]), (override));
     MOCK_METHOD(int, waitpid, (pid_t pid, int* status, int options), (override));
+    MOCK_METHOD(int, sleep, (unsigned int secs), (override));
 };
 
 #endif // SYSCALLS_MOCK_H

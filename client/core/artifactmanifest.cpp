@@ -1,5 +1,6 @@
 #include "artifactmanifest.h"
 
+
 void ArtifactManifest::loadFromJson(const nlohmann::json &data)
 {
     release.version  = data["release"]["version"]          .get<std::string>();
@@ -71,7 +72,7 @@ std::vector<uint8_t> ArtifactManifest::rawHashFromString(const std::string &stri
     return hash;
 }
 
-std::string ArtifactManifest::stringHashFromRaw(const std::vector<uint8_t> &rawHash) const
+std::string ArtifactManifest::stringHashFromRaw(const std::vector<uint8_t> &rawHash)
 {
     std::string hex;
     hex.reserve(rawHash.size() * 2);

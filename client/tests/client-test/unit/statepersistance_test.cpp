@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 #include <fstream>
 
+#include "core/stateexecutors/stateexecutor.h"
 #include "core/statepersistence.h"
 
 

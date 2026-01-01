@@ -1,10 +1,11 @@
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
-#include <tests/client-test/mocks/stateexecutor_mock.h>
-#include <tests/client-test/mocks/statepersistence_mock.h>
-#include <tests/client-test/mocks/deviceinfo_mock.h>
-#include <tests/client-test/mocks/httpclient_mock.h>
-#include <tests/client-test/stateexecutors/executorsfixturebase.h>
+#include <tests/client-test/unit/mocks/stateexecutor_mock.h>
+#include <tests/client-test/unit/mocks/statepersistence_mock.h>
+#include <tests/client-test/unit/mocks/deviceinfo_mock.h>
+#include <tests/client-test/unit/mocks/httpclient_mock.h>
+#include <tests/client-test/unit/mocks/syscalls_mock.h>
+#include <tests/client-test/unit/stateexecutors/executorsfixturebase.h>
 #include <mocks/archivetools_mock.h>
 
 #include "core/stateexecutors/dowloadingstateexecutor.h"
@@ -17,11 +18,11 @@ enum : uint32_t {START_STATE, USUAL_STATE};
 
 using namespace testing;
 
+
 class DownloadingStateExecutorTest : public DownloadingStateExecutor
 {
 public:
     using DownloadingStateExecutor::process;
-    void sleep(std::chrono::minutes m) override {};
 
     DownloadingStateExecutorTest() : DownloadingStateExecutor(DOWNLOADING) {}
 };
@@ -43,6 +44,7 @@ protected:
         auto mockDevConf          = std::make_unique<NiceMock<MockClientConfig>>();
         auto mockArchiveTools     = std::make_unique<NiceMock<MockArchiveTools>>();
         auto mockStatePersistence = std::make_unique<NiceMock<MockStatePersistence>>();
+        auto mockSystemCalls      = std::make_unique<NiceMock<MockSystemCalls>>();
 
         targetSe = std::make_unique<NiceMock<MockStateExecutor>>(); targetSep = targetSe.get();
         failSe   = std::make_unique<NiceMock<MockStateExecutor>>(); failSep   = failSe.get();
@@ -55,7 +57,7 @@ protected:
 
         sm = std::make_unique<StateMachineTestAllPublic>(
             std::move(mockStatePersistence),
-            UpdateContext(std::move(mockDevConf), nullptr, nullptr, std::move(mockArchiveTools), nullptr, "", ""),
+            UpdateContext(std::move(mockDevConf), nullptr, nullptr, std::move(mockArchiveTools), std::move(mockSystemCalls), "", ""),
             std::move(idToStateMap),
             START_STATE,
             StateExecutor::VERIFYING
@@ -121,6 +123,7 @@ protected:
         auto mockDevConf          = std::make_unique<NiceMock<MockClientConfig>>();
         auto mockHttpClient       = std::make_unique<NiceMock<MockHttpClient>>();
         auto mockStatePersistence = std::make_unique<NiceMock<MockStatePersistence>>();
+        auto mockSystemCalls      = std::make_unique<NiceMock<MockSystemCalls>>();
 
         targetSe = std::make_unique<NiceMock<MockStateExecutor>>(); targetSep = targetSe.get();
         failSe   = std::make_unique<NiceMock<MockStateExecutor>>(); failSep   = failSe.get();
@@ -133,7 +136,7 @@ protected:
 
         sm = std::make_unique<StateMachineTestAllPublic>(
             std::move(mockStatePersistence),
-            UpdateContext(std::move(mockDevConf), std::move(mockHttpClient), nullptr, nullptr, nullptr, "", ""),
+            UpdateContext(std::move(mockDevConf), std::move(mockHttpClient), nullptr, nullptr, std::move(mockSystemCalls), "", ""),
             std::move(idToStateMap),
             START_STATE,
             StateExecutor::VERIFYING

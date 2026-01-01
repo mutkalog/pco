@@ -17,10 +17,11 @@ public:
 
     UpdateContext context;
 
-    StateMachine(std::unique_ptr<IStatePersistence> sp, UpdateContext ctx,
-                 std::unordered_map<uint32_t,
-                                    std::unique_ptr<IStateExecutor>> &&map,
-                 uint32_t firstStateId, uint32_t criticalStateId);
+    StateMachine(std::unique_ptr<IStatePersistence> sp,
+                 UpdateContext ctx,
+                 std::unordered_map<uint32_t, std::unique_ptr<IStateExecutor>> &&map,
+                 uint32_t firstStateId,
+                 uint32_t criticalStateId);
 
 protected:
     void recover();

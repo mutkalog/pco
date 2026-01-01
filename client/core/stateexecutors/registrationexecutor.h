@@ -2,7 +2,7 @@
 #define REGISTRATIONEXECUTOR_H
 
 #include "stateexecutor.h"
-#include "../statemachine.h"
+#include "core/statemachine.h"
 
 class RegistrationStateExecutor final : public StateExecutor
 {

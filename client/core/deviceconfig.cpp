@@ -11,7 +11,6 @@ DeviceConfig::DeviceConfig(fs::path confPath, fs::path lastUpdateFile)
     , lastUpdateFile_(lastUpdateFile)
 {}
 
-
 void DeviceConfig::loadConfig()
 {
     std::ifstream configFile(confFile_, std::ios_base::binary);

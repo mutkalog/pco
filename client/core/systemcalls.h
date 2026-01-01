@@ -26,6 +26,11 @@ public:
     {
         return ::waitpid(pid, status, options);
     }
+
+    int sleep(unsigned int secs) override
+    {
+        return ::sleep(secs);
+    }
 };
 
 #endif // SYSTEMCALLS_H

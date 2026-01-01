@@ -2,6 +2,7 @@
 #define COMMITTINGSTATEEXECUTOR_H
 
 #include "core/statemachine.h"
+#include "stateexecutor.h"
 
 
 class CommittingStateExecutor : public StateExecutor

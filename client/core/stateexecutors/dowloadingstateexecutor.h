@@ -2,7 +2,7 @@
 #define DOWLOADINGSTATEEXECUTOR_H
 
 #include "core/stateexecutors/stateexecutor.h"
-#include <chrono>
+// #include <chrono>
 
 class DownloadingStateExecutor : public StateExecutor
 {
@@ -12,7 +12,7 @@ public:
 
 protected:
     virtual void process(StateMachine& sm, const std::string &responseBody);
-    virtual void sleep(std::chrono::minutes m);
+    // virtual void sleep(std::chrono::minutes m);
 };
 
 #endif // DOWLOADINGSTATEEXECUTOR_H

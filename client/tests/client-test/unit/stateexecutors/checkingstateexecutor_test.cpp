@@ -2,10 +2,10 @@
 #include <gtest/gtest.h>
 
 #include <mocks/cryptoutils_mock.h>
-#include <tests/client-test/mocks/stateexecutor_mock.h>
-#include <tests/client-test/mocks/statepersistence_mock.h>
-#include <tests/client-test/mocks/deviceinfo_mock.h>
-#include <tests/client-test/mocks/httpclient_mock.h>
+#include <tests/client-test/unit/mocks/stateexecutor_mock.h>
+#include <tests/client-test/unit/mocks/statepersistence_mock.h>
+#include <tests/client-test/unit/mocks/deviceinfo_mock.h>
+#include <tests/client-test/unit/mocks/httpclient_mock.h>
 
 #include "core/stateexecutors/checkingstateexecutor.h"
 #include "core/artifactmanifest.h"

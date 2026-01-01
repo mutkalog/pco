@@ -14,5 +14,6 @@ public:
                             const posix_spawnattr_t *attr, char *const argv[],
                             char *const env[]) = 0;
     virtual int waitpid(pid_t pid, int* status, int options) = 0;
+    virtual int sleep(unsigned int secs) = 0;
 };
 #endif // ISYSTEMCALLS_H

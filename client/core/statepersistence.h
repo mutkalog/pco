@@ -17,8 +17,4 @@ private:
     fs::path stateFile_;
 };
 
-
-
-
-
 #endif // STATEPERSISTENCE_H

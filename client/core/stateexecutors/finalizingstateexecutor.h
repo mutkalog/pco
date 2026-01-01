@@ -14,7 +14,6 @@ protected:
     virtual void rollback(UpdateContext &ctx);
     virtual void launchScript(UpdateContext &ctx, const fs::path &scriptPath);
     virtual void totalCleanup(UpdateContext &ctx);
-    virtual void sleep(std::chrono::minutes m);
 };
 
 #endif // FINALIZINGSTATEEXECUTOR_H

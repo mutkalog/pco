@@ -2,6 +2,7 @@
 #define VERIFYINGSTATEEXECUTOR_H
 
 #include "core/statemachine.h"
+#include "stateexecutor.h"
 
 class VerifyingStateExecutor : public StateExecutor
 {
