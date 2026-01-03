@@ -39,8 +39,8 @@ add_library(client-core
     core/systemcalls.h
 )
 
-target_compile_options(client-core PRIVATE --coverage -O0 -g)
-target_link_libraries(client-core PRIVATE --coverage)
+# target_compile_options(client-core PRIVATE --coverage -O0 -g)
+# target_link_libraries(client-core PRIVATE --coverage)
 target_compile_definitions(client-core PUBLIC CPPHTTPLIB_OPENSSL_SUPPORT)
 
 add_executable(client-app main.cpp)
@@ -48,10 +48,8 @@ add_executable(client-app main.cpp)
 if(BUILD_STATIC)
     set(CMAKE_EXE_LINKER_FLAGS "-static")
     find_library(ARCHIVE_LIB NAMES libarchive.a archive REQUIRED)
-    message(STATIC!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)
 else()
     find_library(ARCHIVE_LIB NAMES archive REQUIRED)
-    message(NOT STATIC!!!!!!!!!!!!!!!!)
 endif()
 
 target_link_libraries(client-app PUBLIC

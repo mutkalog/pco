@@ -80,8 +80,8 @@ target_link_libraries(client-tests PRIVATE
   GTest::gmock_main
 )
 
-target_compile_options(client-tests PRIVATE --coverage -O0 -g)
-target_link_libraries(client-tests PRIVATE --coverage)
+# target_compile_options(client-tests PRIVATE --coverage -O0 -g)
+# target_link_libraries(client-tests PRIVATE --coverage)
 
 include(GoogleTest)
 gtest_discover_tests(client-tests)

@@ -36,8 +36,8 @@ add_library(server-core
     core/service/interfaces/imanifestservice.h
 )
 
-target_compile_options(server-core PRIVATE --coverage -O0 -g)
-target_link_libraries(server-core PRIVATE --coverage)
+# target_compile_options(server-core PRIVATE --coverage -O0 -g)
+# target_link_libraries(server-core PRIVATE --coverage)
 target_compile_definitions(server-core PUBLIC CPPHTTPLIB_OPENSSL_SUPPORT)
 
 add_executable(server-app main.cpp)

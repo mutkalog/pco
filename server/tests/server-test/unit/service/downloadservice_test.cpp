@@ -480,8 +480,8 @@ TEST_F(DownloadServiceTest, GetArchiveInstallationTimeInUpdateInfo)
 
     auto info = getUpdateInfo(deviceId);
 
-    auto expectedMinTimeout = beforeCall + std::chrono::minutes(installationTime + 5);
-    auto expectedMaxTimeout = afterCall + std::chrono::minutes(installationTime + 5);
+    auto expectedMinTimeout = beforeCall + std::chrono::minutes(installationTime + 1);
+    auto expectedMaxTimeout = afterCall + std::chrono::minutes(installationTime + 1);
 
     EXPECT_GE(info.expireTime, expectedMinTimeout);
     EXPECT_LE(info.expireTime, expectedMaxTimeout);
