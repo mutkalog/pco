@@ -23,17 +23,18 @@ void DownloadController::registerRoute(httplib::Server &serv)
         }
         catch (const pqxx::sql_error& ex)
         {
-            throw;
+            res.status = httplib::BadRequest_400;
+            res.set_content("Release not found", "text/plain");
         }
         catch (const std::system_error &ex)
         {
-            throw;
+            res.status = httplib::InternalServerError_500;
+            res.set_content("System error", "text/plain");
         }
         catch (const std::runtime_error &ex)
         {
-            std::cout << ex.what() << std::endl;
-            res.status = httplib::BadRequest_400;
-            res.set_content("Release not found", "plain/text");
+            res.status = httplib::InternalServerError_500;
+            res.set_content("Archive creation failed", "text/plain");
         }
     });
 }

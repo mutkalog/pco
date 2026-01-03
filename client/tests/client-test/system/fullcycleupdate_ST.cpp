@@ -1,38 +1,40 @@
+#include "archivetoolsadapter.h"
+#include "core/deviceconfig.h"
+#include "sslutilsadapter.h"
 #include "systemfixturebase.h"
 
+#include "core/artifactmanifest.h"
 
 class FullUpdateCycleSystemTest : public SystemFixtureBase
 {
 protected:
     std::atomic<int> nextDeviceId{100};
-
     fs::path archivePath;
     std::string manifestString;
+    std::string signatureString;
     std::vector<uint8_t> archiveData;
     std::atomic<bool> successReportReceived{false};
+    const std::string version = "1.2.0";
 
     void SetUp() override
     {
-        IntegrationFixtureBase::SetUp();
+        SystemFixtureBase::SetUp();
 
-        fs::create_directories(BASE_TEST_DIR / "opt/myapp");
-        writeFile(BASE_TEST_DIR / "opt/myapp/app2", "APP2_BINARY");
-        writeFile(BASE_TEST_DIR / "opt/myapp/app3", "APP3_BINARY");
-        writeFile(BASE_TEST_DIR / "prepare.sh", "#!/bin/bash\necho prepare");
-        writeFile(BASE_TEST_DIR / "commit.sh",  "#!/bin/bash\necho commit");
-
-        createDeviceConfig(CONF_FILE, std::nullopt);
-        createStateMachine(BASE_TEST_DIR / "last_update.json", StateExecutor::REGISTRATION);
-
-        auto hashOf = [&](const fs::path& p)
-        {
-            return stateMachine->context.cryptoUtils->sha256FromFile(p.string());
+        auto hashOf = [&](const fs::path &p) {
+            return SSLUtilsAdapter().sha256FromFile(p.string());
         };
+
+        fs::path newDir = BASE_TEST_DIR / ("new_version_" + version);
+        fs::create_directories(newDir);
+        writeFile(newDir / "app2", std::string("APP2_BINARY_NEW_") + version);
+        writeFile(newDir / "app3", std::string("APP3_BINARY_NEW_") + version);
+        writeFile(newDir / "prepare.sh", std::string("#!/bin/bash\necho prepare_") + version);
+        writeFile(newDir / "commit.sh", std::string("#!/bin/bash\necho commit_") + version);
 
         json manifestJson =
         {
             { "release", {
-                { "version",   "1.2.0" },
+                { "version",   version },
                 { "type",      "Raspberry Pi 4" },
                 { "timestamp", "2025-11-12T10:23:00Z" },
                 { "platform",  "Linux" },
@@ -40,22 +42,22 @@ protected:
             }},
             { "files", json::array({
                 {
-                    { "path", (BASE_TEST_DIR / "opt/myapp/app2").c_str() },
-                    { "hash", {{ "algo", "sha256" }, { "value", ArtifactManifest::stringHashFromRaw(hashOf(BASE_TEST_DIR / "opt/myapp/app2")) }}}
+                    { "path", "/opt/myapp/app2" },
+                    { "hash", {{ "algo", "sha256" }, { "value", ArtifactManifest::stringHashFromRaw(hashOf(newDir / "app2")) }}}
                 },
                 {
-                    { "path", (BASE_TEST_DIR / "opt/myapp/app3").c_str() },
-                    { "hash", {{ "algo", "sha256" }, { "value", ArtifactManifest::stringHashFromRaw(hashOf(BASE_TEST_DIR / "opt/myapp/app3")) }}}
+                    { "path", "/opt/myapp/app3" },
+                    { "hash", {{ "algo", "sha256" }, { "value", ArtifactManifest::stringHashFromRaw(hashOf(newDir / "app3")) }}}
                 },
                 {
                     { "script", true },
                     { "path", "prepare.sh" },
-                    { "hash", {{ "algo", "sha256" }, { "value", ArtifactManifest::stringHashFromRaw(hashOf(BASE_TEST_DIR / "prepare.sh")) }}}
+                    { "hash", {{ "algo", "sha256" }, { "value", ArtifactManifest::stringHashFromRaw(hashOf(newDir / "prepare.sh")) }}}
                 },
                 {
                     { "script", true },
                     { "path", "commit.sh" },
-                    { "hash", {{ "algo", "sha256" }, { "value", ArtifactManifest::stringHashFromRaw(hashOf(BASE_TEST_DIR / "commit.sh")) }}}
+                    { "hash", {{ "algo", "sha256" }, { "value", ArtifactManifest::stringHashFromRaw(hashOf(newDir / "commit.sh")) }}}
                 }
             })}
         };
@@ -66,52 +68,45 @@ protected:
         fs::path sigFile      = BASE_TEST_DIR / "manifest.json.sig";
         writeFile(manifestFile, manifestString);
 
-        std::string signCmd = std::string("openssl dgst -sha256 -sign ") + PROJECT_ROOT_DIR +
-                              "/client/tests/resources/security/private.pem -out " +
-                              sigFile.string() + " " + manifestFile.string();
+        std::string signCmd =
+            std::string("openssl dgst -sha256 -sign ") +
+            PROJECT_ROOT_DIR +
+            "/client/sim/security/private.pem -out " +
+            sigFile.string() + " " + manifestFile.string();
 
-        if (system(signCmd.c_str()) != 0) {
+        if (system(signCmd.c_str()) != 0)
             throw std::runtime_error("Failed to sign manifest via OpenSSL");
-        }
 
         std::string signatureData = readFileBinary(sigFile);
-        std::string signatureB64  = stateMachine->context.cryptoUtils->encodeBase64(
-            std::vector<uint8_t>(signatureData.begin(), signatureData.end())
-        );
-
-        json sigJson = {
+        signatureString = json{
             {"signature", {
                 {"algo", "rsa-sha256"},
                 {"keyname", "main-signing-key"},
-                {"value", signatureB64}
+                {"value", SSLUtilsAdapter().encodeBase64(std::vector<uint8_t>(signatureData.begin(), signatureData.end()))}
             }}
-        };
-
-        std::string signatureString = sigJson.dump();
+        }.dump();
 
         std::vector<std::string> paths =
         {
-            (BASE_TEST_DIR / "opt/myapp/app2").string(),
-            (BASE_TEST_DIR / "opt/myapp/app3").string(),
-            (BASE_TEST_DIR / "prepare.sh").string(),
-            (BASE_TEST_DIR / "commit.sh").string()
+            (newDir / "app2").string(),
+            (newDir / "app3").string(),
+            (newDir / "prepare.sh").string(),
+            (newDir / "commit.sh").string()
         };
 
-        ASSERT_EQ(
-            stateMachine->context.archiveTools->create_archive_from_paths(paths, archiveData),
-            ARCHIVE_OK
-        );
+        ASSERT_EQ(ArchiveToolsAdapter().create_archive_from_paths(paths, archiveData), ARCHIVE_OK);
 
-        server->Post("/register", [this](const httplib::Request&, httplib::Response& res) {
-            res.set_content(json{{ "status", "registered" }, { "id", nextDeviceId++ }}.dump(), "application/json");
-            res.status = httplib::StatusCode::OK_200;
+        server->Post("/register", [this](const httplib::Request& req, httplib::Response& res) {
+            json response = {
+                {"status", "registered"},
+                {"id", nextDeviceId++}
+            };
+            res.set_content(response.dump(), "application/json");
+            res.status = 200;
         });
 
-        server->Get("/manifest", [this, signatureString](const httplib::Request&, httplib::Response& res) {
-            json response {
-                { "manifest",  manifestString },
-                { "signature", signatureString }
-            };
+        server->Get("/manifest", [this](const httplib::Request&, httplib::Response& res) {
+            json response = { {"manifest", manifestString}, {"signature", signatureString} };
             res.set_content(response.dump(), "application/json");
             res.status = httplib::StatusCode::OK_200;
         });
@@ -123,53 +118,26 @@ protected:
 
         server->Post("/report", [this](const httplib::Request& req, httplib::Response& res) {
             auto j = json::parse(req.body);
-            if (j["status"] == "SUCCESS" && j["current_version"] == "1.2.0") {
+            if (j["status"] == "SUCCESS" && j["current_version"] == version)
                 successReportReceived = true;
-            }
             res.status = httplib::StatusCode::OK_200;
         });
 
         startServer();
+
+        buildDockerImage(fs::path(PROJECT_ROOT_DIR) / "client/sim");
+        runDockerContainer();
     }
 };
 
-
-TEST_F(FullUpdateCycleSystemTest, ExecuteFullSuccessfulUpdateFromScratch)
+TEST_F(FullUpdateCycleSystemTest, ExecuteFullSuccessfulUpdate)
 {
-    stateMachine->run();
-    EXPECT_EQ(stateMachine->state(), StateExecutor::IDLE);
-    EXPECT_EQ(stateMachine->context.devconf->id(), 100);
-
-    stateMachine->run();
-    EXPECT_EQ(stateMachine->state(), StateExecutor::CHECKING);
-
-    stateMachine->run();
-    EXPECT_EQ(stateMachine->state(), StateExecutor::DOWNLOADING);
-
-    stateMachine->run();
-    EXPECT_EQ(stateMachine->state(), StateExecutor::VERIFYING);
-
-    stateMachine->run();
-    EXPECT_EQ(stateMachine->state(), StateExecutor::PREPARING);
-
-    stateMachine->run();
-    EXPECT_EQ(stateMachine->state(), StateExecutor::INSTALLING);
-
-    stateMachine->run();
-    EXPECT_EQ(stateMachine->state(), StateExecutor::COMMITTING);
-
-    stateMachine->run();
-    EXPECT_EQ(stateMachine->state(), StateExecutor::FINALIZING);
-
-    stateMachine->run();
-    EXPECT_EQ(stateMachine->state(), StateExecutor::IDLE);
-
-    EXPECT_EQ(stateMachine->context.devconf->prevManifest().release.version, "1.2.0");
-
-    EXPECT_TRUE(fs::exists(BASE_TEST_DIR / "opt/myapp/app2"));
-    EXPECT_TRUE(fs::exists(BASE_TEST_DIR / "opt/myapp/app3"));
-    EXPECT_EQ(readFileBinary(BASE_TEST_DIR / "opt/myapp/app2"), "APP2_BINARY");
-
-    EXPECT_FALSE(fs::exists(STAGING_DIR));
-    EXPECT_TRUE(successReportReceived);
+    const int MAX_WAIT_MS = 10000;
+    int waited = 0;
+    while (!successReportReceived && waited < MAX_WAIT_MS)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        waited += 100;
+    }
+    ASSERT_TRUE(successReportReceived.load());
 }

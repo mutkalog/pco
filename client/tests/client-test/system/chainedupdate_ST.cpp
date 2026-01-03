@@ -1,71 +1,29 @@
+#include "archivetoolsadapter.h"
+#include "core/deviceconfig.h"
+#include "sslutilsadapter.h"
 #include "systemfixturebase.h"
 
 
 class ChainedUpdatesSystemTest : public SystemFixtureBase
 {
 protected:
+    std::atomic<int> nextDeviceId{100};
     fs::path archivePath;
     std::vector<std::string> manifestStrings;
     std::vector<std::string> signatureStrings;
     std::vector<std::vector<uint8_t>> archives;
     std::atomic<bool> successReportReceived{false};
-    fs::path prevManifestFile;
+    std::vector<std::string> versions = {"1.2.0", "1.3.0", "1.4.0"};
     std::atomic<int> stage{0};
 
     void SetUp() override
     {
-        IntegrationFixtureBase::SetUp();
+        SystemFixtureBase::SetUp();
 
-        fs::create_directories(BASE_TEST_DIR / "opt/myapp");
-        writeFile(BASE_TEST_DIR / "opt/myapp/app2", "APP2_BINARY_OLD");
-        writeFile(BASE_TEST_DIR / "opt/myapp/app3", "APP3_BINARY_OLD");
-        writeFile(BASE_TEST_DIR / "prepare.sh", "#!/bin/bash\necho prepare_old");
-        writeFile(BASE_TEST_DIR / "commit.sh",  "#!/bin/bash\necho commit_old");
-
-        createDeviceConfig(CONF_FILE, 102);
-
-        prevManifestFile = BASE_TEST_DIR / "last_update.json";
-
-        auto hashOf = [&](const fs::path& p) {
+        auto hashOf = [&](const fs::path &p) {
             return SSLUtilsAdapter().sha256FromFile(p.string());
         };
 
-        json prevManifestJson =
-        {
-            { "release", {
-                { "version",   "1.0.0" },
-                { "type",      "Raspberry Pi 4" },
-                { "timestamp", "2025-01-01T00:00:00Z" },
-                { "platform",  "Linux" },
-                { "arch",      "ARMv8" }
-            }},
-            { "files", json::array({
-                {
-                    { "path", (BASE_TEST_DIR / "opt/myapp/app2").c_str() },
-                    { "hash", {{ "algo", "sha256" }, { "value", ArtifactManifest::stringHashFromRaw(hashOf(BASE_TEST_DIR / "opt/myapp/app2")) }}}
-                },
-                {
-                    { "path", (BASE_TEST_DIR / "opt/myapp/app3").c_str() },
-                    { "hash", {{ "algo", "sha256" }, { "value", ArtifactManifest::stringHashFromRaw(hashOf(BASE_TEST_DIR / "opt/myapp/app3")) }}}
-                },
-                {
-                    { "script", true },
-                    { "path", "prepare.sh" },
-                    { "hash", {{ "algo", "sha256" }, { "value", ArtifactManifest::stringHashFromRaw(hashOf(BASE_TEST_DIR / "prepare.sh")) }}}
-                },
-                {
-                    { "script", true },
-                    { "path", "commit.sh" },
-                    { "hash", {{ "algo", "sha256" }, { "value", ArtifactManifest::stringHashFromRaw(hashOf(BASE_TEST_DIR / "commit.sh")) }}}
-                }
-            })}
-        };
-
-        writeFile(prevManifestFile, prevManifestJson.dump());
-
-        createStateMachine(prevManifestFile, StateExecutor::REGISTRATION);
-
-        std::vector<std::string> versions = {"1.2.0", "1.3.0", "1.4.0"};
         manifestStrings.resize(versions.size());
         signatureStrings.resize(versions.size());
         archives.resize(versions.size());
@@ -90,11 +48,11 @@ protected:
                 }},
                 { "files", json::array({
                     {
-                        { "path", (BASE_TEST_DIR / "opt/myapp/app2").c_str() },
+                        { "path", "/opt/myapp/app2" },
                         { "hash", {{ "algo", "sha256" }, { "value", ArtifactManifest::stringHashFromRaw(hashOf(newDir / "app2")) }}}
                     },
                     {
-                        { "path", (BASE_TEST_DIR / "opt/myapp/app3").c_str() },
+                        { "path", "/opt/myapp/app3" },
                         { "hash", {{ "algo", "sha256" }, { "value", ArtifactManifest::stringHashFromRaw(hashOf(newDir / "app3")) }}}
                     },
                     {
@@ -119,7 +77,7 @@ protected:
             std::string signCmd =
                 std::string("openssl dgst -sha256 -sign ") +
                 PROJECT_ROOT_DIR +
-                "/client/tests/resources/security/private.pem -out " +
+                "/client/sim/security/private.pem -out " +
                 sigFile.string() + " " + manifestFile.string();
 
             if (system(signCmd.c_str()) != 0)
@@ -130,7 +88,7 @@ protected:
                 {"signature", {
                     {"algo", "rsa-sha256"},
                     {"keyname", "main-signing-key"},
-                    {"value", stateMachine->context.cryptoUtils->encodeBase64(std::vector<uint8_t>(signatureData.begin(), signatureData.end()))}
+                    {"value", SSLUtilsAdapter().encodeBase64(std::vector<uint8_t>(signatureData.begin(), signatureData.end()))}
                 }}
             }.dump();
 
@@ -142,8 +100,17 @@ protected:
                 (newDir / "commit.sh").string()
             };
 
-            ASSERT_EQ(stateMachine->context.archiveTools->create_archive_from_paths(paths, archives[i]), ARCHIVE_OK);
+            ASSERT_EQ(ArchiveToolsAdapter().create_archive_from_paths(paths, archives[i]), ARCHIVE_OK);
         }
+
+        server->Post("/register", [this](const httplib::Request& req, httplib::Response& res) {
+            json response = {
+                {"status", "registered"},
+                {"id", nextDeviceId++}
+            };
+            res.set_content(response.dump(), "application/json");
+            res.status = 200;
+        });
 
         server->Get("/manifest", [this](const httplib::Request&, httplib::Response& res) {
             int idx = stage.load();
@@ -152,12 +119,11 @@ protected:
                 json response = { {"manifest", manifestStrings[idx]}, {"signature", signatureStrings[idx]} };
                 res.set_content(response.dump(), "application/json");
                 res.status = httplib::StatusCode::OK_200;
-                return;
             }
-            int last = static_cast<int>(manifestStrings.size()) - 1;
-            json response = { {"manifest", manifestStrings[last]}, {"signature", signatureStrings[last]} };
-            res.set_content(response.dump(), "application/json");
-            res.status = httplib::StatusCode::OK_200;
+            else
+            {
+                res.status = httplib::BadRequest_400;
+            }
         });
 
         server->Get("/download", [this](const httplib::Request&, httplib::Response& res) {
@@ -166,49 +132,45 @@ protected:
             {
                 res.set_content(reinterpret_cast<const char*>(archives[idx].data()), archives[idx].size(), "application/octet-stream");
                 res.status = httplib::StatusCode::OK_200;
-                stage.fetch_add(1);
-                return;
             }
-            int last = static_cast<int>(archives.size()) - 1;
-            res.set_content(reinterpret_cast<const char*>(archives[last].data()), archives[last].size(), "application/octet-stream");
-            res.status = httplib::StatusCode::OK_200;
+            else
+            {
+                res.status = httplib::BadRequest_400;
+            }
         });
 
         server->Post("/report", [this](const httplib::Request& req, httplib::Response& res) {
             auto j = json::parse(req.body);
-            if (j["status"] == "SUCCESS" && j["current_version"] == "1.4.0")
-                successReportReceived = true;
+            int currentStage = stage.load();
+            if (currentStage < static_cast<int>(versions.size())) {
+                if (j["status"] == "SUCCESS" && j["current_version"] == versions[currentStage]) {
+                    stage.fetch_add(1);
+                    if (stage.load() == static_cast<int>(versions.size()))
+                        successReportReceived = true;
+                }
+            }
+
             res.status = httplib::StatusCode::OK_200;
         });
 
         startServer();
+
+        buildDockerImage(fs::path(PROJECT_ROOT_DIR) / "client/sim");
+        runDockerContainer();
     }
 };
 
+
 TEST_F(ChainedUpdatesSystemTest, ExecuteThreeUpdatesInSequence)
 {
-    ASSERT_EQ(stateMachine->context.devconf->prevManifest().release.version, "1.0.0");
-
-    const int MAX_STEPS = 3 * StateExecutor::TOTAL;
-    int steps = 0;
-    bool idleStateHasntPassed = true;
-
-    while ((stateMachine->context.devconf->prevManifest().release.version != "1.4.0"
-            || stateMachine->state() != StateExecutor::IDLE || idleStateHasntPassed)
-            && ++steps < MAX_STEPS)
+    const int MAX_WAIT_MS = 10000;
+    int waited = 0;
+    while (!successReportReceived && waited < MAX_WAIT_MS)
     {
-        if (stateMachine->state() == StateExecutor::IDLE)
-            idleStateHasntPassed = false;
-
-        stateMachine->run();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        waited += 100;
     }
 
-    ASSERT_LT(steps, MAX_STEPS);
+    ASSERT_EQ(stage, 3);
 
-    EXPECT_EQ(stateMachine->state(), StateExecutor::IDLE);
-    EXPECT_EQ(stateMachine->context.devconf->prevManifest().release.version, "1.4.0");
-    EXPECT_TRUE(successReportReceived);
-    EXPECT_FALSE(fs::exists(STAGING_DIR));
-    EXPECT_EQ(readFileBinary(BASE_TEST_DIR / "opt/myapp/app2"), "APP2_BINARY_NEW_1.4.0");
-    EXPECT_EQ(readFileBinary(BASE_TEST_DIR / "opt/myapp/app3"), "APP3_BINARY_NEW_1.4.0");
 }

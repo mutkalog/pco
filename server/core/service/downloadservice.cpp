@@ -25,7 +25,7 @@ constexpr std::string_view FALLBACK_SQL =
         "AND r.active = true";
 
 constexpr uint64_t ERROR_CODE = 3;
-constexpr int      FIXED_GRACE_PERIOD_MINUTES = 5;
+constexpr int      FIXED_GRACE_PERIOD_MINUTES = 1;
 }
 
 std::vector<uint8_t>

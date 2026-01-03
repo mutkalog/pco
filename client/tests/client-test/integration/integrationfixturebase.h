@@ -1,7 +1,6 @@
 #ifndef INTEGRATIONFIXTUREBASE_H
 #define INTEGRATIONFIXTUREBASE_H
 
-#include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 #include <fstream>
 
@@ -37,9 +36,9 @@ protected:
     const fs::path STATE_FILE    = BASE_TEST_DIR / "state.json";
     const fs::path STAGING_DIR   = BASE_TEST_DIR / "staging";
 
-    const fs::path SERVER_CERT = fs::path(PROJECT_ROOT_DIR) / "client/tests/resources/security/server.crt";
-    const fs::path SERVER_KEY  = fs::path(PROJECT_ROOT_DIR) / "client/tests/resources/security/server.key";
-    const fs::path CA_CERT     = fs::path(PROJECT_ROOT_DIR) / "client/tests/resources/security/ca.crt";
+    const fs::path SERVER_CERT = fs::path(PROJECT_ROOT_DIR) / "client/sim/security/server.crt";
+    const fs::path SERVER_KEY  = fs::path(PROJECT_ROOT_DIR) / "client/sim/security/server.key";
+    const fs::path CA_CERT     = fs::path(PROJECT_ROOT_DIR) / "client/sim/security/ca.pem";
 
     std::unique_ptr<StateMachine> stateMachine;
     std::unique_ptr<httplib::SSLServer> server;
@@ -108,10 +107,10 @@ protected:
             {"updatePollingIntervalMinutes", 1},
             {"serverURL", "localhost"},
             {"serverPort", 18992},
-            {"certPath",  (rootDir / "client/tests/resources/security/client.crt").string()},
-            {"keyPath",   (rootDir / "client/tests/resources/security/client.key").string()},
-            {"caCertPath",(rootDir / "client/tests/resources/security/ca.pem").string()},
-            {"publicKeyPath", (rootDir / "client/tests/resources/security/public.pem").string()},
+            {"certPath",  (rootDir / "client/sim/security/client.crt").string()},
+            {"keyPath",   (rootDir / "client/sim/security/client.key").string()},
+            {"caCertPath",(rootDir / "client/sim/security/ca.pem").string()},
+            {"publicKeyPath", (rootDir / "client/sim/security/public.pem").string()},
         };
 
         if (deviceId.has_value())

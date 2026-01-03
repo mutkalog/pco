@@ -203,7 +203,7 @@ void RolloutSupervisor::invalidateRelease(pqxx::connection &conn, entry_id_t id)
 void RolloutSupervisor::assignDevices(pqxx::connection &conn, const std::pair<entry_id_t, RolloutInfo>& info)
 {
     const auto& [id, ri] = info;
-    std::cout << "RolloutManager: assigning " << ri.nextSelectionPercentage << "% more of "
+    std::cout << "RolloutSupervisor: assigning " << ri.nextSelectionPercentage << "% more of "
               << ri.arch << " " << ri.type << " on " << ri.platform << " to "
               << id << " release" << std::endl;
 
@@ -222,7 +222,7 @@ void RolloutSupervisor::assignDevices(pqxx::connection &conn, const std::pair<en
 void RolloutSupervisor::updateCanary(pqxx::connection &conn, const std::pair<entry_id_t, RolloutInfo>& info)
 {
     const auto& [id, ri] = info;
-    std::cout << "RolloutManager: updating percentage in "
+    std::cout << "RolloutSupervisor: updating percentage in "
               << id << " to "
               << ri.inRolloutPercentage << "%" << std::endl;
 
@@ -254,7 +254,7 @@ void RolloutSupervisor::removeAssignments(pqxx::connection &conn, entry_id_t id)
     pqxx::result res = txn.exec(REMOVE_ASSIGNMENTS_SQL, params);
     txn.commit();
 
-    std::cout << "RolloutManager: removed " << res.affected_rows()
+    std::cout << "RolloutSupervisor: removed " << res.affected_rows()
               << " rows from release_assignment table" << std::endl;
 }
 

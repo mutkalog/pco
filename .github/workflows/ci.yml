@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: debian-13
 
     steps:
       - name: Checkout code
@@ -38,7 +38,7 @@ jobs:
 
       - name: Start Docker Compose
         run: docker compose -f server/docker-compose.test.yml up -d
-
+        
       - name: Wait for Postgres
         run: |
           echo "Waiting for Postgres to be healthy..."
@@ -52,6 +52,13 @@ jobs:
       - name: Build Project
         run: cmake --build build --config Release -j $(nproc)
 
+      - name: Copy Binaries for Docker
+        run: |
+          cp build/server/server-app server/sim
+          cp chmod +x server/sim/server-app
+          cp build/client/client-app client/sim
+          cp chmod +x client/sim/client-app
+
       - name: Run Client Tests
         working-directory: build/client/tests/client-test
         run: ctest --output-on-failure
@@ -62,4 +69,4 @@ jobs:
 
       - name: Stop Docker Compose
         if: always()
-        run: docker compose -f server/docker-compose.test.yml down
+        run: docker compose -f server/docker-compose.test.yml down -v

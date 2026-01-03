@@ -18,7 +18,13 @@ void UploadController::registerRoute(httplib::Server &serv)
         auto        canaryPercentage  = (canary && !percentage.empty())
                                         ? std::make_optional(std::stoi(percentage))
                                         : std::nullopt;
-        int         reqTimeMinutes    = req.get_param_value_count("installationTime");
+
+        int reqTimeMinutes = 1;
+        if (req.has_param("installationTime"))
+        {
+            reqTimeMinutes = std::stoi(req.get_param_value("installationTime"));
+        }
+
         std::string rawManifest;
         std::string archive;
 

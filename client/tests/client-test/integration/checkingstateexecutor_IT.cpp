@@ -22,7 +22,7 @@ protected:
         writeFile(manifestFile, manifestContent);
 
         system((std::string("openssl dgst -sha256 -sign ") + PROJECT_ROOT_DIR +
-                "/client/tests/resources/security/private.pem -out " + sigFile.string() + " " + manifestFile.string()).c_str());
+                "/client/sim/security/private.pem -out " + sigFile.string() + " " + manifestFile.string()).c_str());
 
         createDeviceConfig(CONF_FILE, 222);
         createStateMachine(prevManifestFile, StateExecutor::CHECKING);

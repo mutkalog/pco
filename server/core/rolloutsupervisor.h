@@ -10,6 +10,7 @@
 class RolloutSupervisor final : public Task
 {
     friend class RolloutSupervisorTest;
+    friend class UploadIntegrationTest;
 
 public:
     RolloutSupervisor(std::shared_ptr<ServerContext>& sc);

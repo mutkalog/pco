@@ -4,11 +4,10 @@
 void RegistrationController::registerRoute(httplib::Server &serv)
 {
     serv.Post("/register", [&](const httplib::Request &req, httplib::Response& res) {
-
-        json requestBody = json::parse(req.body);
-        std::string type     = requestBody["type"];
-        std::string arch     = requestBody["arch"];
-        std::string platform = requestBody["platform"];
+        json requestBody     = json::parse(req.body);
+        std::string type     = requestBody.value("type", "");
+        std::string arch     = requestBody.value("arch", "");
+        std::string platform = requestBody.value("platform", "");
 
         std::cout << req.method << " on " << req.path << " from " << arch << " "
                   << type << " on " << platform << std::endl;

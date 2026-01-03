@@ -10,7 +10,7 @@
 class ConnectionsPool
 {
 public:
-    ConnectionsPool(size_t poolSize = 10u);
+    ConnectionsPool(size_t poolSize = 5u);
     ~ConnectionsPool();
 
     std::unique_ptr<pqxx::connection> acquire();
