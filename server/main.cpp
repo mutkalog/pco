@@ -36,21 +36,32 @@ void parseArgs(int argc, char* argv[], std::string& ca, std::string& cert, std::
         {"ca",   required_argument, nullptr, 'a'},
         {"cert", required_argument, nullptr, 'c'},
         {"key",  required_argument, nullptr, 'k'},
+        {"test", no_argument,       nullptr, 't'},
         {nullptr, 0, nullptr, 0}
     };
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "a:c:k:", long_opts, nullptr)) != -1)
+    while ((opt = getopt_long(argc, argv, "a:c:k:t", long_opts, nullptr)) != -1)
     {
         switch (opt)
         {
-            case 'a': ca   = optarg; break;
-            case 'c': cert = optarg; break;
-            case 'k': key  = optarg; break;
+            case 'a':
+                ca = optarg;
+                break;
+            case 'c':
+                cert = optarg;
+                break;
+            case 'k':
+                key = optarg;
+                break;
+            case 't':
+                Database::instance("pco_test", "postgres", "127.0.0.1", "5433");
+                std::cout << "Server app launched with test DB" << std::endl;
+                break;
             default:
                 std::cerr << "Usage: "
                           << argv[0]
-                          << " --ca <ca> --cert <cert> --key <key>\n";
+                          << " --ca <ca> --cert <cert> --key <key> [--test]\n";
                 std::exit(EXIT_FAILURE);
         }
     }
@@ -60,7 +71,7 @@ void parseArgs(int argc, char* argv[], std::string& ca, std::string& cert, std::
         std::cerr << "All arguments are required\n";
         std::cerr << "Usage: "
                   << argv[0]
-                  << " --ca <ca> --cert <cert> --key <key>\n";
+                  << " --ca <ca> --cert <cert> --key <key> [--test]\n";
         std::exit(EXIT_FAILURE);
     }
 }

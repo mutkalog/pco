@@ -36,15 +36,15 @@ add_executable(client-tests main.cpp
   integration/installingstateexecutor.cpp
   integration/finalizingstateexecutor_IT.cpp
   integration/committingstateexecutor_IT.cpp
+  integration/restartduringupdateinverifyingstate_IT.cpp
+  integration/restartduringprocessinpreparingstate_IT.cpp
+  integration/restartduringprocessininstallingstate_IT.cpp
+  integration/restartduringprocessincommittingstate_IT.cpp
+  integration/restarduringprocessInfinalizingstate_IT.cpp
+  integration/updatewithexistinglastupdatefile_IT.cpp
   system/fullcycleupdate_ST.cpp
   system/systemfixturebase.h
-  system/updatewithexistinglastupdatefile_ST.cpp
   system/chainedupdate_ST.cpp
-  system/restartduringupdateinverifyingstate_ST.cpp
-  system/restartduringprocessinpreparingstate.cpp
-  system/restartduringprocessininstallingstate.cpp
-  system/restartduringprocessincommittingstate_ST.cpp
-  system/restarduringprocessInfinalizingstate_ST.cpp
 )
 
 if(BUILD_STATIC)
@@ -80,8 +80,8 @@ target_link_libraries(client-tests PRIVATE
   GTest::gmock_main
 )
 
-target_compile_options(client-tests PRIVATE --coverage -O0 -g)
-target_link_libraries(client-tests PRIVATE --coverage)
+# target_compile_options(client-tests PRIVATE --coverage -O0 -g)
+# target_link_libraries(client-tests PRIVATE --coverage)
 
 include(GoogleTest)
 gtest_discover_tests(client-tests)

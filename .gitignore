@@ -3,4 +3,6 @@ testapp/app
 *user
 keys
 mtls
+*/sim/*.sh
+*/sim/*-app
 

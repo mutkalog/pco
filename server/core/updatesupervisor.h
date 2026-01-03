@@ -10,6 +10,7 @@
 class UpdateSupervisor final : public Task
 {
     friend class UpdateSupervisorTest;
+    friend class DownloadIntegrationTest;
 
 public:
     UpdateSupervisor(std::shared_ptr<ServerContext>& sc);
