@@ -55,9 +55,9 @@ jobs:
       - name: Copy Binaries for Docker
         run: |
           cp build/server/server-app server/sim
-          cp chmod +x server/sim/server-app
+          chmod +x server/sim/server-app
           cp build/client/client-app client/sim
-          cp chmod +x client/sim/client-app
+          chmod +x client/sim/client-app
 
       - name: Run Client Tests
         working-directory: build/client/tests/client-test
