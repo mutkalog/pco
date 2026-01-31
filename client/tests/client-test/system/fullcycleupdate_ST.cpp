@@ -112,7 +112,8 @@ protected:
         });
 
         server->Get("/download", [this](const httplib::Request&, httplib::Response& res) {
-            res.set_content(reinterpret_cast<const char*>(archiveData.data()), archiveData.size(), "application/octet-stream");
+            res.set_content(reinterpret_cast<const char*>(archiveData.data()),
+                            archiveData.size(), "application/octet-stream");
             res.status = httplib::StatusCode::OK_200;
         });
 

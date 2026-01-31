@@ -185,7 +185,8 @@ TEST_F(RolloutSupervisorTest, Method_AssignDevices)
 {
     int relId = createRelease(true, true, 0, "sensor", "linux", "x86", "2.0.2");
 
-    for(int i=0; i<20; ++i) {
+    for (int i = 0; i < 20; ++i)
+    {
         createDevice("sensor", "linux", "x86");
     }
 
