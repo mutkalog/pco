@@ -157,7 +157,9 @@ void RolloutSupervisor::process()
                 }
                 else
                 {
-                    int nextTarget             = std::clamp(std::ceil(ri.inRolloutPercentage * 2), 0.0, 100.0);
+                    int nextTarget             = std::clamp(
+                        std::ceil(ri.inRolloutPercentage * 2), 0.0, 100.0);
+
                     ri.nextSelectionPercentage = nextTarget - ri.inRolloutPercentage;
                     ri.inRolloutPercentage     = nextTarget;
 

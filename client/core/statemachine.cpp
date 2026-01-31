@@ -37,7 +37,8 @@ void StateMachine::transitTo(uint32_t nextState)
     {
         if (inCriticalStates_)
         {
-            std::cout << "Writing state " + std::to_string(nextState) + " to state file" << std::endl;
+            std::cout << "Writing state " + std::to_string(nextState)
+                             + " to state file" << std::endl;
             sp_->dump(nextState, context);
         }
         else

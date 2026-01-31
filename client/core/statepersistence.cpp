@@ -64,8 +64,9 @@ void StatePersistence::clear()
         int dirFd = ::open(stateFile_.parent_path().c_str(), O_DIRECTORY | O_RDONLY);
         if (dirFd < 0)
         {
-            throw std::system_error(std::error_code(errno, std::generic_category()),
-                                    "Cannot open state file parent dir " + stateFile_.string());
+            throw std::system_error(
+                std::error_code(errno, std::generic_category()),
+                "Cannot open state file parent dir " + stateFile_.string());
         }
 
         if (::fsync(dirFd) != 0)

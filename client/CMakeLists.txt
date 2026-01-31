@@ -57,22 +57,8 @@ target_link_libraries(client-app PUBLIC
     common
     ${ARCHIVE_LIB}
     xml2
-    icuuc
-    icudata
-    gmp
-    nettle
-    hogweed
     ssl
     crypto
-    acl
-    z
-    bz2
-    lzma
-    zstd
-    lz4
-    dl
-    pthread
-    m
 )
 
 add_subdirectory(tests/client-test)

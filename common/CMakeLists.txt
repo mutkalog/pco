@@ -33,13 +33,8 @@ target_link_libraries(common PRIVATE
   bz2
   lzma
   zstd
-  lz4
-  ssl
-  crypto
   acl
-  gmp
   nettle
-  hogweed
   xml2
 
   GTest::gtest_main

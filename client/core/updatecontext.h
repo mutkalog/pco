@@ -9,8 +9,6 @@
 #include "interfaces/icryptoutils.h"
 #include "interfaces/iarchivetools.h"
 
-class LinuxSandboxInspector;
-
 enum UpdateCode : size_t
 {
     OK,

@@ -3,6 +3,7 @@
 #include "sslutilsadapter.h"
 #include "systemfixturebase.h"
 
+const int MAX_WAIT_MS = 10000;
 
 class ChainedUpdatesSystemTest : public SystemFixtureBase
 {
@@ -104,10 +105,7 @@ protected:
         }
 
         server->Post("/register", [this](const httplib::Request& req, httplib::Response& res) {
-            json response = {
-                {"status", "registered"},
-                {"id", nextDeviceId++}
-            };
+            json response = {{"status", "registered"}, {"id", nextDeviceId++}};
             res.set_content(response.dump(), "application/json");
             res.status = 200;
         });
@@ -120,22 +118,15 @@ protected:
                 res.set_content(response.dump(), "application/json");
                 res.status = httplib::StatusCode::OK_200;
             }
-            else
-            {
-                res.status = httplib::BadRequest_400;
-            }
         });
 
         server->Get("/download", [this](const httplib::Request&, httplib::Response& res) {
             int idx = stage.load();
             if (idx < static_cast<int>(archives.size()))
             {
-                res.set_content(reinterpret_cast<const char*>(archives[idx].data()), archives[idx].size(), "application/octet-stream");
+                res.set_content(reinterpret_cast<const char*>(archives[idx].data()),
+                                archives[idx].size(), "application/octet-stream");
                 res.status = httplib::StatusCode::OK_200;
-            }
-            else
-            {
-                res.status = httplib::BadRequest_400;
             }
         });
 
@@ -163,7 +154,6 @@ protected:
 
 TEST_F(ChainedUpdatesSystemTest, ExecuteThreeUpdatesInSequence)
 {
-    const int MAX_WAIT_MS = 10000;
     int waited = 0;
     while (!successReportReceived && waited < MAX_WAIT_MS)
     {
@@ -172,5 +162,4 @@ TEST_F(ChainedUpdatesSystemTest, ExecuteThreeUpdatesInSequence)
     }
 
     ASSERT_EQ(stage, 3);
-
 }
